@@ -4,7 +4,9 @@ export const msalConfig: Configuration = {
     auth: {
         clientId: '3ca657f9-ff46-4322-b8d3-640565067857',
         authority: 'https://login.microsoftonline.com/32b8ffa5-83e1-4600-8ef4-09d1482fceab',
-        redirectUri: import.meta.env.PROD ? 'https://lyb5737-lyb77.github.io/inventory-management/' : window.location.origin,
+        redirectUri: window.location.hostname.includes('github.io')
+            ? 'https://lyb5737-lyb77.github.io/inventory-management/'
+            : window.location.origin,
     },
     cache: {
         cacheLocation: 'sessionStorage',

@@ -12,7 +12,7 @@ await msalInstance.initialize();
 function App() {
     return (
         <MsalProvider instance={msalInstance}>
-            <BrowserRouter>
+            <BrowserRouter basename={import.meta.env.BASE_URL}>
                 <AuthenticatedTemplate>
                     <Routes>
                         <Route path="/" element={<HomePage />} />
