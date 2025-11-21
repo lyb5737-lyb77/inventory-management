@@ -1,0 +1,70 @@
+import { useNavigate } from 'react-router-dom';
+import { useMsal } from '@azure/msal-react';
+
+export default function HomePage() {
+    const navigate = useNavigate();
+    const { instance } = useMsal();
+
+    const handleLogout = () => {
+        instance.logoutPopup().catch(e => {
+            console.error(e);
+        });
+    };
+
+    return (
+        <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900">
+            <nav className="bg-black/30 backdrop-blur-md border-b border-white/10">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div className="flex justify-between items-center h-16">
+                        <h1 className="text-2xl font-bold text-white">재고 관리 시스템</h1>
+                        <button
+                            onClick={handleLogout}
+                            className="text-white hover:text-red-400 transition"
+                        >
+                            로그아웃
+                        </button>
+                    </div>
+                </div>
+            </nav>
+
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+                <div className="grid md:grid-cols-2 gap-6">
+                    {/* 관리자 페이지 카드 */}
+                    <div
+                        onClick={() => navigate('/admin')}
+                        className="bg-white/10 backdrop-blur-lg rounded-2xl p-8 border border-white/20 cursor-pointer transform transition hover:scale-105 hover:bg-white/15 shadow-2xl"
+                    >
+                        <div className="flex items-center gap-4 mb-4">
+                            <div className="bg-blue-500 p-3 rounded-lg">
+                                <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                </svg>
+                            </div>
+                            <h2 className="text-3xl font-bold text-white">관리자 페이지</h2>
+                        </div>
+                        <p className="text-gray-300 text-lg">품목 추가, 수정, 삭제 관리</p>
+                        <p className="text-gray-400 text-sm mt-2">품명, 제품그룹, 품번, 수량, 가격, 비고</p>
+                    </div>
+
+                    {/* 자재 관리 페이지 카드 */}
+                    <div
+                        onClick={() => navigate('/inventory')}
+                        className="bg-white/10 backdrop-blur-lg rounded-2xl p-8 border border-white/20 cursor-pointer transform transition hover:scale-105 hover:bg-white/15 shadow-2xl"
+                    >
+                        <div className="flex items-center gap-4 mb-4">
+                            <div className="bg-green-500 p-3 rounded-lg">
+                                <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                                </svg>
+                            </div>
+                            <h2 className="text-3xl font-bold text-white">자재 관리</h2>
+                        </div>
+                        <p className="text-gray-300 text-lg">입출고 관리 및 재고 현황</p>
+                        <p className="text-gray-400 text-sm mt-2">입고, 출고, 재고 검색, 인쇄</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+}
