@@ -25,11 +25,26 @@ export default function InventoryPage() {
         remarks: '',
     });
 
+    // 날짜 포맷팅 헬퍼
+    const formatDate = (date: Date) => {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    };
+
     // 검색 폼
-    const [searchForm, setSearchForm] = useState({
-        startDate: new Date().toISOString().split('T')[0],
-        endDate: new Date().toISOString().split('T')[0],
+    const [searchForm, setSearchForm] = useState(() => {
+        const today = new Date();
+        const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+        const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+        return {
+            startDate: formatDate(firstDay),
+            endDate: formatDate(lastDay),
+        };
     });
+
+    const [selectedPeriod, setSelectedPeriod] = useState<number | null>(null);
 
     const [searchResults, setSearchResults] = useState<Transaction[]>([]);
 
@@ -101,6 +116,24 @@ export default function InventoryPage() {
         e.preventDefault();
         const results = await getTransactionsByDateRange(searchForm.startDate, searchForm.endDate);
         setSearchResults(results);
+    };
+
+    const handlePeriodSelect = (months: number) => {
+        const today = new Date();
+        const endDate = formatDate(today);
+        const startDate = new Date(today);
+        startDate.setMonth(today.getMonth() - months);
+
+        setSearchForm({
+            startDate: formatDate(startDate),
+            endDate: endDate
+        });
+        setSelectedPeriod(months);
+    };
+
+    const handleDateChange = (field: 'startDate' | 'endDate', value: string) => {
+        setSearchForm(prev => ({ ...prev, [field]: value }));
+        setSelectedPeriod(null); // 수동 변경 시 라디오 버튼 선택 해제
     };
 
     const handlePrint = () => {
@@ -359,6 +392,28 @@ export default function InventoryPage() {
                     <div className="space-y-6">
                         <div className="bg-white/10 backdrop-blur-lg rounded-2xl shadow-2xl p-6 border border-white/20">
                             <h2 className="text-2xl font-bold text-white mb-6">날짜별 재고 검색</h2>
+
+                            {/* 기간 선택 라디오 버튼 */}
+                            <div className="flex gap-6 mb-6">
+                                {[1, 3, 6, 12].map((months) => (
+                                    <label key={months} className="flex items-center gap-2 cursor-pointer group">
+                                        <div className="relative flex items-center">
+                                            <input
+                                                type="radio"
+                                                name="searchPeriod"
+                                                className="peer appearance-none w-5 h-5 border-2 border-gray-400 rounded-full checked:border-purple-500 checked:border-4 transition-all"
+                                                checked={selectedPeriod === months}
+                                                onChange={() => handlePeriodSelect(months)}
+                                            />
+                                        </div>
+                                        <span className={`text-sm font-medium transition-colors ${selectedPeriod === months ? 'text-purple-400' : 'text-gray-300 group-hover:text-white'
+                                            }`}>
+                                            {months === 12 ? '1년' : `${months}개월`}
+                                        </span>
+                                    </label>
+                                ))}
+                            </div>
+
                             <form onSubmit={handleSearch} className="flex gap-4 items-end">
                                 <div className="flex-1">
                                     <label className="block text-sm font-medium text-gray-300 mb-1">시작 날짜</label>
@@ -366,7 +421,7 @@ export default function InventoryPage() {
                                         type="date"
                                         required
                                         value={searchForm.startDate}
-                                        onChange={(e) => setSearchForm({ ...searchForm, startDate: e.target.value })}
+                                        onChange={(e) => handleDateChange('startDate', e.target.value)}
                                         className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
                                     />
                                 </div>
@@ -376,7 +431,7 @@ export default function InventoryPage() {
                                         type="date"
                                         required
                                         value={searchForm.endDate}
-                                        onChange={(e) => setSearchForm({ ...searchForm, endDate: e.target.value })}
+                                        onChange={(e) => handleDateChange('endDate', e.target.value)}
                                         className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
                                     />
                                 </div>
