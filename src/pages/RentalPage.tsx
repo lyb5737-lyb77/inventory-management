@@ -145,21 +145,21 @@ export default function RentalPage() {
                         <table className="min-w-full">
                             <thead className="bg-gradient-to-r from-blue-600/50 to-purple-600/50">
                                 <tr>
-                                    <th className="px-4 py-3 text-center text-sm font-bold text-white border-r border-white/10">호실</th>
-                                    <th className="px-4 py-3 text-center text-sm font-bold text-white border-r border-white/10">임대인</th>
-                                    <th className="px-4 py-3 text-center text-sm font-bold text-white border-r border-white/10">연락처</th>
-                                    <th className="px-4 py-3 text-center text-sm font-bold text-white border-r border-white/10">e-mail</th>
-                                    <th className="px-4 py-3 text-center text-sm font-bold text-white border-r border-white/10">임대면적</th>
-                                    <th className="px-4 py-3 text-center text-sm font-bold text-white border-r border-white/10">계약기간</th>
-                                    <th className="px-4 py-3 text-center text-sm font-bold text-white border-r border-white/10">구분</th>
-                                    <th className="px-4 py-3 text-center text-sm font-bold text-white border-r border-white/10">임대형태</th>
-                                    <th className="px-4 py-3 text-center text-sm font-bold text-white border-r border-white/10">입금</th>
-                                    <th className="px-4 py-3 text-center text-sm font-bold text-white border-r border-white/10">보증금</th>
-                                    <th className="px-4 py-3 text-center text-sm font-bold text-white border-r border-white/10">월임대료</th>
-                                    <th className="px-4 py-3 text-center text-sm font-bold text-white border-r border-white/10">관리비</th>
-                                    <th className="px-4 py-3 text-center text-sm font-bold text-white border-r border-white/10">주차비</th>
-                                    <th className="px-4 py-3 text-center text-sm font-bold text-white border-r border-white/10">비고</th>
-                                    <th className="px-4 py-3 text-center text-sm font-bold text-white">관리</th>
+                                    <th className="w-20 px-3 py-3 text-center text-sm font-bold text-white border-r border-white/10">호실</th>
+                                    <th className="w-24 px-2 py-3 text-center text-sm font-bold text-white border-r border-white/10">임대인</th>
+                                    <th className="w-36 px-3 py-3 text-center text-sm font-bold text-white border-r border-white/10">연락처</th>
+                                    <th className="w-32 px-2 py-3 text-center text-sm font-bold text-white border-r border-white/10">e-mail</th>
+                                    <th className="w-20 px-2 py-3 text-center text-sm font-bold text-white border-r border-white/10">임대면적</th>
+                                    <th className="w-40 px-2 py-3 text-center text-sm font-bold text-white border-r border-white/10">계약기간</th>
+                                    <th className="w-28 px-3 py-3 text-center text-sm font-bold text-white border-r border-white/10">구분</th>
+                                    <th className="w-28 px-3 py-3 text-center text-sm font-bold text-white border-r border-white/10">임대형태</th>
+                                    <th className="w-24 px-2 py-3 text-center text-sm font-bold text-white border-r border-white/10">입금</th>
+                                    <th className="w-28 px-2 py-3 text-center text-sm font-bold text-white border-r border-white/10">보증금</th>
+                                    <th className="w-28 px-2 py-3 text-center text-sm font-bold text-white border-r border-white/10">월임대료</th>
+                                    <th className="w-24 px-2 py-3 text-center text-sm font-bold text-white border-r border-white/10">관리비</th>
+                                    <th className="w-24 px-2 py-3 text-center text-sm font-bold text-white border-r border-white/10">주차비</th>
+                                    <th className="w-40 px-3 py-3 text-center text-sm font-bold text-white border-r border-white/10">비고</th>
+                                    <th className="w-20 px-3 py-3 text-center text-sm font-bold text-white">관리</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-white/10">
@@ -172,26 +172,26 @@ export default function RentalPage() {
                                 ) : (
                                     rentals.map((rental, index) => (
                                         <tr key={rental.id} className={`hover:bg-white/5 transition ${index % 2 === 0 ? 'bg-white/5' : ''}`}>
-                                            <td className="px-4 py-3 text-center border-r border-white/5 text-gray-200 font-medium">{rental.ho}</td>
-                                            <td className="px-4 py-3 border-r border-white/5 text-gray-200">{rental.tenantName}</td>
-                                            <td className="px-4 py-3 border-r border-white/5 text-gray-300 text-sm">{rental.contact}</td>
-                                            <td className="px-4 py-3 border-r border-white/5 text-blue-300 text-sm">{rental.email}</td>
-                                            <td className="px-4 py-3 text-right border-r border-white/5 text-gray-200">{rental.area}</td>
-                                            <td className="px-4 py-3 text-center border-r border-white/5 text-gray-300 text-xs whitespace-nowrap">
+                                            <td className="px-3 py-3 text-center border-r border-white/5 text-gray-200 font-medium">{rental.ho}</td>
+                                            <td className="px-2 py-3 border-r border-white/5 text-gray-200 truncate">{rental.tenantName}</td>
+                                            <td className="px-3 py-3 border-r border-white/5 text-gray-300 text-sm">{rental.contact}</td>
+                                            <td className="px-2 py-3 border-r border-white/5 text-blue-300 text-sm truncate">{rental.email}</td>
+                                            <td className="px-2 py-3 text-right border-r border-white/5 text-gray-200">{rental.area}</td>
+                                            <td className="px-2 py-3 text-center border-r border-white/5 text-gray-300 text-xs whitespace-nowrap">
                                                 {rental.contractStartDate}<br />~ {rental.contractEndDate}
                                             </td>
-                                            <td className="px-4 py-3 text-center border-r border-white/5">
+                                            <td className="px-3 py-3 text-center border-r border-white/5">
                                                 <span className={`px-2 py-1 rounded-full text-xs font-medium ${rental.type === '직원' ? 'bg-green-500/30 text-green-200' : 'bg-yellow-500/30 text-yellow-200'}`}>
                                                     {rental.type}
                                                 </span>
                                             </td>
-                                            <td className="px-4 py-3 text-center border-r border-white/5 text-gray-200">{rental.rentalType}</td>
-                                            <td className="px-4 py-3 text-center border-r border-white/5 text-gray-300 text-sm">{rental.paymentDate}</td>
-                                            <td className="px-4 py-3 text-right border-r border-white/5 text-emerald-300 font-medium">{rental.deposit.toLocaleString()}</td>
-                                            <td className="px-4 py-3 text-right border-r border-white/5 text-emerald-300 font-medium">{rental.monthlyRent.toLocaleString()}</td>
-                                            <td className="px-4 py-3 text-right border-r border-white/5 text-gray-300">{rental.maintenanceFee.toLocaleString()}</td>
-                                            <td className="px-4 py-3 text-right border-r border-white/5 text-gray-300">{rental.parkingFee.toLocaleString()}</td>
-                                            <td className="px-4 py-3 border-r border-white/5 text-gray-400 text-xs">{rental.remarks}</td>
+                                            <td className="px-3 py-3 text-center border-r border-white/5 text-gray-200">{rental.rentalType}</td>
+                                            <td className="px-2 py-3 text-center border-r border-white/5 text-gray-300 text-sm">{rental.paymentDate}</td>
+                                            <td className="px-2 py-3 text-right border-r border-white/5 text-emerald-300 font-medium">{rental.deposit.toLocaleString()}</td>
+                                            <td className="px-2 py-3 text-right border-r border-white/5 text-emerald-300 font-medium">{rental.monthlyRent.toLocaleString()}</td>
+                                            <td className="px-2 py-3 text-right border-r border-white/5 text-gray-300">{rental.maintenanceFee.toLocaleString()}</td>
+                                            <td className="px-2 py-3 text-right border-r border-white/5 text-gray-300">{rental.parkingFee.toLocaleString()}</td>
+                                            <td className="px-3 py-3 border-r border-white/5 text-gray-400 text-xs">{rental.remarks}</td>
                                             <td className="px-4 py-3 text-center">
                                                 <button
                                                     onClick={() => handleEdit(rental)}
