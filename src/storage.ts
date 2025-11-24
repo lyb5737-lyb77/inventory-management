@@ -333,6 +333,6 @@ export const deleteRental = async (id: string): Promise<void> => {
 };
 
 // Deprecated: LocalStorage functions removed
-export const saveRentals = (rentals: Rental[]): void => {
+export const saveRentals = (_rentals: Rental[]): void => {
     console.warn('saveRentals is deprecated. Use addRental/updateRental instead.');
 };
