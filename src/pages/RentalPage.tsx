@@ -115,7 +115,7 @@ export default function RentalPage() {
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 p-8">
-            <div className="max-w-7xl mx-auto">
+            <div className="max-w-full mx-auto px-4">
                 {/* Header */}
                 <div className="flex justify-between items-center mb-8">
                     <div className="flex items-center gap-4">
