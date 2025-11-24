@@ -160,7 +160,7 @@ export default function RentalPage() {
                                     <th className="w-20 px-2 py-3 text-center text-sm font-bold text-white border-r border-white/10">임대면적</th>
                                     <th className="w-40 px-2 py-3 text-center text-sm font-bold text-white border-r border-white/10">계약기간</th>
                                     <th className="w-[80px] px-2 py-3 text-center text-sm font-bold text-white border-r border-white/10">구분</th>
-                                    <th className="w-[40px] px-2 py-3 text-center text-sm font-bold text-white border-r border-white/10">임대형태</th>
+                                    <th className="w-[80px] px-2 py-3 text-center text-sm font-bold text-white border-r border-white/10">임대형태</th>
                                     <th className="w-24 px-2 py-3 text-center text-sm font-bold text-white border-r border-white/10">입금</th>
                                     <th className="w-[80px] px-2 py-3 text-center text-sm font-bold text-white border-r border-white/10">보증금</th>
                                     <th className="w-[80px] px-2 py-3 text-center text-sm font-bold text-white border-r border-white/10">월임대료</th>
