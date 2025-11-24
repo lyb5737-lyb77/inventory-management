@@ -14,8 +14,8 @@ export default function LoginPage() {
         <div className="min-h-screen bg-gradient-to-br from-blue-900 via-purple-900 to-indigo-900 flex items-center justify-center p-4">
             <div className="bg-white/10 backdrop-blur-lg rounded-2xl shadow-2xl p-8 max-w-md w-full border border-white/20">
                 <div className="text-center mb-8">
-                    <h1 className="text-4xl font-bold text-white mb-2">재고 관리 시스템</h1>
-                    <p className="text-gray-300">Inventory Management System</p>
+                    <h1 className="text-4xl font-bold text-white mb-2">BIT 관리 시스템</h1>
+                    <p className="text-gray-300">BIT Management System</p>
                 </div>
 
                 <div className="space-y-4">
@@ -30,7 +30,7 @@ export default function LoginPage() {
                     </button>
 
                     <div className="text-center text-sm text-gray-300 mt-6">
-                        <p>로그인 후 재고 관리 시스템을 이용하실 수 있습니다.</p>
+                        <p>로그인 후 BIT 관리 시스템을 이용하실 수 있습니다.</p>
                     </div>
                 </div>
             </div>
