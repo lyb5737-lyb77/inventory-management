@@ -5,9 +5,11 @@ import LoginPage from './pages/LoginPage';
 import HomePage from './pages/HomePage';
 import AdminPage from './pages/AdminPage';
 import InventoryPage from './pages/InventoryPage';
+import RentalPage from './pages/RentalPage';
 
 // Initialize MSAL
-await msalInstance.initialize();
+// Initialize MSAL
+// await msalInstance.initialize(); // Moved to main.tsx
 
 function App() {
     return (
@@ -18,6 +20,7 @@ function App() {
                         <Route path="/" element={<HomePage />} />
                         <Route path="/admin" element={<AdminPage />} />
                         <Route path="/inventory" element={<InventoryPage />} />
+                        <Route path="/rental" element={<RentalPage />} />
                     </Routes>
                 </AuthenticatedTemplate>
                 <UnauthenticatedTemplate>

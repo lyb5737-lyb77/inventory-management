@@ -1,4 +1,4 @@
-import { Item, Transaction, ProductGroup } from './types';
+import { Item, Transaction, ProductGroup, Rental } from './types';
 import { getListItems, createListItem, updateListItem, deleteListItem } from './services/sharepoint';
 import { sharePointConfig } from './authConfig';
 
@@ -27,6 +27,25 @@ interface SharePointTransaction {
     Quantity: string;
     TransactionDate: string;
     Target?: string;
+    Remarks: string;
+}
+
+interface SharePointRental {
+    id: string;
+    Title: string; // TenantName
+    ContractType: string; // type (직원/일반인)
+    Ho: string;
+    Area: string;
+    Contact: string;
+    Email: string;
+    RentalType: string; // 월세/전세/반전세
+    Deposit: string;
+    MonthlyRent: string;
+    MaintenanceFee: string;
+    ParkingFee: string;
+    PaymentDate: string;
+    ContractStartDate: string;
+    ContractEndDate: string;
     Remarks: string;
 }
 
@@ -217,4 +236,103 @@ export const updateProductGroup = async (id: string, updates: Partial<ProductGro
 
 export const deleteProductGroup = async (id: string): Promise<void> => {
     await deleteListItem(sharePointConfig.listNames.productGroups, id);
+};
+
+// 임대 관리 (SharePoint 사용)
+export const getRentals = async (): Promise<Rental[]> => {
+    try {
+        const spRentals = await getListItems<SharePointRental>(sharePointConfig.listNames.rentals);
+        return spRentals.map(spRental => ({
+            id: spRental.id,
+            type: spRental.ContractType || '',
+            ho: spRental.Ho || '',
+            area: spRental.Area || '',
+            tenantName: spRental.Title || '',
+            contact: spRental.Contact || '',
+            email: spRental.Email || '',
+            rentalType: spRental.RentalType || '',
+            deposit: parseInt(spRental.Deposit) || 0,
+            monthlyRent: parseInt(spRental.MonthlyRent) || 0,
+            maintenanceFee: parseInt(spRental.MaintenanceFee) || 0,
+            parkingFee: parseInt(spRental.ParkingFee) || 0,
+            paymentDate: spRental.PaymentDate || '',
+            contractStartDate: spRental.ContractStartDate || '',
+            contractEndDate: spRental.ContractEndDate || '',
+            remarks: spRental.Remarks || '',
+        }));
+    } catch (error) {
+        console.error('Error getting rentals:', error);
+        return [];
+    }
+};
+
+export const addRental = async (rental: Omit<Rental, 'id'>): Promise<Rental> => {
+    const data: any = {
+        Title: rental.tenantName,
+        ContractType: rental.type,
+        Ho: rental.ho,
+        Area: rental.area,
+        Contact: rental.contact,
+        Email: rental.email,
+        RentalType: rental.rentalType,
+        Deposit: String(rental.deposit),
+        MonthlyRent: String(rental.monthlyRent),
+        MaintenanceFee: String(rental.maintenanceFee),
+        ParkingFee: String(rental.parkingFee),
+        PaymentDate: rental.paymentDate,
+        ContractStartDate: rental.contractStartDate,
+        ContractEndDate: rental.contractEndDate,
+        Remarks: rental.remarks,
+    };
+
+    const spRental = await createListItem<SharePointRental>(sharePointConfig.listNames.rentals, data);
+
+    return {
+        id: spRental.id,
+        type: spRental.ContractType || '',
+        ho: spRental.Ho || '',
+        area: spRental.Area || '',
+        tenantName: spRental.Title || '',
+        contact: spRental.Contact || '',
+        email: spRental.Email || '',
+        rentalType: spRental.RentalType || '',
+        deposit: parseInt(spRental.Deposit) || 0,
+        monthlyRent: parseInt(spRental.MonthlyRent) || 0,
+        maintenanceFee: parseInt(spRental.MaintenanceFee) || 0,
+        parkingFee: parseInt(spRental.ParkingFee) || 0,
+        paymentDate: spRental.PaymentDate || '',
+        contractStartDate: spRental.ContractStartDate || '',
+        contractEndDate: spRental.ContractEndDate || '',
+        remarks: spRental.Remarks || '',
+    };
+};
+
+export const updateRental = async (id: string, updates: Partial<Rental>): Promise<void> => {
+    const spUpdates: any = {};
+    if (updates.tenantName !== undefined) spUpdates.Title = updates.tenantName;
+    if (updates.type !== undefined) spUpdates.ContractType = updates.type;
+    if (updates.ho !== undefined) spUpdates.Ho = updates.ho;
+    if (updates.area !== undefined) spUpdates.Area = updates.area;
+    if (updates.contact !== undefined) spUpdates.Contact = updates.contact;
+    if (updates.email !== undefined) spUpdates.Email = updates.email;
+    if (updates.rentalType !== undefined) spUpdates.RentalType = updates.rentalType;
+    if (updates.deposit !== undefined) spUpdates.Deposit = String(updates.deposit);
+    if (updates.monthlyRent !== undefined) spUpdates.MonthlyRent = String(updates.monthlyRent);
+    if (updates.maintenanceFee !== undefined) spUpdates.MaintenanceFee = String(updates.maintenanceFee);
+    if (updates.parkingFee !== undefined) spUpdates.ParkingFee = String(updates.parkingFee);
+    if (updates.paymentDate !== undefined) spUpdates.PaymentDate = updates.paymentDate;
+    if (updates.contractStartDate !== undefined) spUpdates.ContractStartDate = updates.contractStartDate;
+    if (updates.contractEndDate !== undefined) spUpdates.ContractEndDate = updates.contractEndDate;
+    if (updates.remarks !== undefined) spUpdates.Remarks = updates.remarks;
+
+    await updateListItem(sharePointConfig.listNames.rentals, id, spUpdates);
+};
+
+export const deleteRental = async (id: string): Promise<void> => {
+    await deleteListItem(sharePointConfig.listNames.rentals, id);
+};
+
+// Deprecated: LocalStorage functions removed
+export const saveRentals = (rentals: Rental[]): void => {
+    console.warn('saveRentals is deprecated. Use addRental/updateRental instead.');
 };

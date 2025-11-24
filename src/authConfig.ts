@@ -22,9 +22,10 @@ export const loginRequest = {
 export const sharePointConfig = {
     siteUrl: 'https://bitkr.sharepoint.com/sites/bit.kr',
     listNames: {
-        items: 'InventoryItems',
-        productGroups: 'ProductGroups',
-        transactions: 'Transactions',
+        items: '자재현황',
+        productGroups: '제품그룹',
+        transactions: '입출고내역',
+        rentals: 'RentalContracts',
     },
 };
 
