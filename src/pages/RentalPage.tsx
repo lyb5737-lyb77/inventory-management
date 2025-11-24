@@ -155,18 +155,18 @@ export default function RentalPage() {
                                 <tr>
                                     <th className="w-20 px-3 py-3 text-center text-sm font-bold text-white border-r border-white/10">호실</th>
                                     <th className="w-[60px] px-2 py-3 text-center text-sm font-bold text-white border-r border-white/10">임대인</th>
-                                    <th className="w-[100px] px-2 py-3 text-center text-sm font-bold text-white border-r border-white/10">연락처</th>
+                                    <th className="w-[200px] px-2 py-3 text-center text-sm font-bold text-white border-r border-white/10">연락처</th>
                                     <th className="w-[100px] px-2 py-3 text-center text-sm font-bold text-white border-r border-white/10">e-mail</th>
                                     <th className="w-20 px-2 py-3 text-center text-sm font-bold text-white border-r border-white/10">임대면적</th>
                                     <th className="w-40 px-2 py-3 text-center text-sm font-bold text-white border-r border-white/10">계약기간</th>
-                                    <th className="w-[40px] px-2 py-3 text-center text-sm font-bold text-white border-r border-white/10">구분</th>
+                                    <th className="w-[80px] px-2 py-3 text-center text-sm font-bold text-white border-r border-white/10">구분</th>
                                     <th className="w-[40px] px-2 py-3 text-center text-sm font-bold text-white border-r border-white/10">임대형태</th>
                                     <th className="w-24 px-2 py-3 text-center text-sm font-bold text-white border-r border-white/10">입금</th>
                                     <th className="w-[80px] px-2 py-3 text-center text-sm font-bold text-white border-r border-white/10">보증금</th>
                                     <th className="w-[80px] px-2 py-3 text-center text-sm font-bold text-white border-r border-white/10">월임대료</th>
                                     <th className="w-[80px] px-2 py-3 text-center text-sm font-bold text-white border-r border-white/10">관리비</th>
                                     <th className="w-[80px] px-2 py-3 text-center text-sm font-bold text-white border-r border-white/10">주차비</th>
-                                    <th className="w-[100px] px-2 py-3 text-center text-sm font-bold text-white border-r border-white/10">비고</th>
+                                    <th className="w-[200px] px-2 py-3 text-center text-sm font-bold text-white border-r border-white/10">비고</th>
                                     <th className="w-20 px-3 py-3 text-center text-sm font-bold text-white">관리</th>
                                 </tr>
                             </thead>
