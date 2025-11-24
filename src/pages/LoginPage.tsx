@@ -31,6 +31,9 @@ export default function LoginPage() {
 
                     <div className="text-center text-sm text-gray-300 mt-6">
                         <p>로그인 후 BIT 관리 시스템을 이용하실 수 있습니다.</p>
+                        <div className="mt-3 p-3 bg-yellow-500/20 border border-yellow-500/30 rounded-lg">
+                            <p className="text-yellow-200 font-medium">⚠️ BIT.KR MS 계정만 로그인 가능합니다</p>
+                        </div>
                     </div>
                 </div>
             </div>
