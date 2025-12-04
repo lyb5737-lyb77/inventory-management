@@ -30,6 +30,7 @@ export const getListItems = async <T>(listName: string): Promise<T[]> => {
         const response = await client
             .api(`/sites/${sId}/lists/${listName}/items`)
             .expand('fields')
+            .top(5000) // 최대 5000개까지 조회
             .get();
 
         return response.value.map((item: any) => item.fields);
