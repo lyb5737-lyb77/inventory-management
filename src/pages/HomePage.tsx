@@ -95,6 +95,23 @@ export default function HomePage() {
                         <p className="text-gray-400 text-sm mt-2">입고, 출고, 재고 검색, 인쇄</p>
                     </div>
 
+                    {/* 출고 신청 페이지 카드 */}
+                    <div
+                        onClick={() => navigate('/outbound-request')}
+                        className="bg-white/10 backdrop-blur-lg rounded-2xl p-8 border border-white/20 cursor-pointer transform transition hover:scale-105 hover:bg-white/15 shadow-2xl"
+                    >
+                        <div className="flex items-center gap-4 mb-4">
+                            <div className="bg-pink-500 p-3 rounded-lg">
+                                <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                                </svg>
+                            </div>
+                            <h2 className="text-3xl font-bold text-white">출고 신청</h2>
+                        </div>
+                        <p className="text-gray-300 text-lg">창고 담당자에게 출고 요청</p>
+                        <p className="text-gray-400 text-sm mt-2">출고 신청, 이메일 발송, 거래 기록</p>
+                    </div>
+
                     {/* 임대 관리 페이지 카드 */}
                     <div
                         onClick={() => navigate('/rental')}

@@ -5,11 +5,32 @@ export interface ProductGroup {
     description?: string;
 }
 
+// 창고 (Warehouse) 인터페이스
+export interface Warehouse {
+    id: string;
+    name: string;      // 창고명
+    location: string;  // 창고위치
+    manager: string;   // 담당자
+    email: string;     // E-mail
+    remarks: string;   // 비고
+}
+
+// 출고처 (Customer) 인터페이스
+export interface Customer {
+    id: string;
+    douzoneNumber: string; // 더존번호
+    name: string;          // 이름
+    contact: string;       // 연락처
+    address: string;       // 주소
+    remarks: string;       // 비고
+}
+
 // 품목 (Item) 인터페이스
 export interface Item {
     id: string;
     name: string; // 품명
     group: string; // 제품그룹
+    warehouse: string; // 창고 (기본값: "비트본사")
     partNumber: string; // 품번
     quantity: number; // 현재고
     price: number; // 가격
@@ -22,6 +43,7 @@ export interface Transaction {
     itemId: string;
     itemName: string; // 검색 편의를 위해 추가
     type: 'IN' | 'OUT'; // 입고 | 출고
+    warehouse: string; // 창고
     quantity: number;
     date: string; // ISO date string
     target?: string; // 출고처 (출고시만)

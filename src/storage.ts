@@ -1,4 +1,4 @@
-import { Item, Transaction, ProductGroup, Rental } from './types';
+import { Item, Transaction, ProductGroup, Rental, Warehouse, Customer } from './types';
 import { getListItems, createListItem, updateListItem, deleteListItem } from './services/sharepoint';
 import { sharePointConfig } from './authConfig';
 
@@ -10,6 +10,7 @@ interface SharePointItem {
     PartNumber: string;
     Quantity: string;  // SharePoint에서 텍스트 타입
     Price: string;  // SharePoint에서 텍스트 타입
+    Warehouse?: string; // 창고
     Remarks: string;
 }
 
@@ -26,7 +27,26 @@ interface SharePointTransaction {
     TransactionType: 'IN' | 'OUT';
     Quantity: string;
     TransactionDate: string;
+    Warehouse?: string; // 창고
     Target?: string;
+    Remarks: string;
+}
+
+interface SharePointWarehouse {
+    id: string;
+    Title: string; // Name
+    Location: string;
+    Manager: string;
+    Email: string;
+    Remarks: string;
+}
+
+interface SharePointCustomer {
+    id: string;
+    Title: string; // Name
+    DouzoneNumber: string;
+    Contact: string;
+    Address: string;
     Remarks: string;
 }
 
@@ -57,6 +77,7 @@ export const getItems = async (): Promise<Item[]> => {
             id: spItem.id,
             name: spItem.Title,
             group: spItem.ProductGroup || '',
+            warehouse: spItem.Warehouse || '비트본사', // 기본값 설정
             partNumber: spItem.PartNumber || '',
             quantity: parseInt(spItem.Quantity) || 0,
             price: parseInt(spItem.Price) || 0,
@@ -73,6 +94,7 @@ export const addItem = async (item: Omit<Item, 'id'>): Promise<Item> => {
         Title: item.name,
         Quantity: String(item.quantity || 0),  // 텍스트 타입이므로 문자열로 변환
         Price: String(item.price || 0),  // 텍스트 타입이므로 문자열로 변환
+        Warehouse: item.warehouse || '비트본사',
     };
 
     // 선택적 필드들 - 값이 있을 때만 추가
@@ -92,6 +114,7 @@ export const addItem = async (item: Omit<Item, 'id'>): Promise<Item> => {
         id: spItem.id,
         name: spItem.Title,
         group: spItem.ProductGroup || '',
+        warehouse: spItem.Warehouse || '비트본사',
         partNumber: spItem.PartNumber || '',
         quantity: parseInt(spItem.Quantity) || 0,
         price: parseInt(spItem.Price) || 0,
@@ -106,6 +129,7 @@ export const updateItem = async (id: string, updates: Partial<Item>): Promise<vo
     if (updates.partNumber !== undefined) spUpdates.PartNumber = updates.partNumber;
     if (updates.quantity !== undefined) spUpdates.Quantity = String(updates.quantity);
     if (updates.price !== undefined) spUpdates.Price = String(updates.price);
+    if (updates.warehouse !== undefined) spUpdates.Warehouse = updates.warehouse;
     if (updates.remarks !== undefined) spUpdates.Remarks = updates.remarks;
 
     await updateListItem(sharePointConfig.listNames.items, id, spUpdates);
@@ -124,6 +148,7 @@ export const getTransactions = async (): Promise<Transaction[]> => {
             itemId: spTx.ItemId,
             itemName: spTx.ItemName,
             type: spTx.TransactionType,
+            warehouse: spTx.Warehouse || '비트본사',
             quantity: parseInt(spTx.Quantity) || 0,
             date: spTx.TransactionDate,
             target: spTx.Target,
@@ -140,6 +165,7 @@ export const addTransaction = async (transaction: Omit<Transaction, 'id'>): Prom
         ItemId: transaction.itemId,
         ItemName: transaction.itemName,
         TransactionType: transaction.type,
+        Warehouse: transaction.warehouse || '비트본사',
         Quantity: String(transaction.quantity),
         TransactionDate: transaction.date,
         Target: transaction.target || '',
@@ -162,6 +188,7 @@ export const addTransaction = async (transaction: Omit<Transaction, 'id'>): Prom
         itemId: spTransaction.ItemId,
         itemName: spTransaction.ItemName,
         type: spTransaction.TransactionType,
+        warehouse: spTransaction.Warehouse || '비트본사',
         quantity: parseInt(spTransaction.Quantity) || 0,
         date: spTransaction.TransactionDate,
         target: spTransaction.Target,
@@ -332,7 +359,116 @@ export const deleteRental = async (id: string): Promise<void> => {
     await deleteListItem(sharePointConfig.listNames.rentals, id);
 };
 
+// 창고 관리
+export const getWarehouses = async (): Promise<Warehouse[]> => {
+    try {
+        const spWarehouses = await getListItems<SharePointWarehouse>(sharePointConfig.listNames.warehouses);
+        return spWarehouses.map(spWh => ({
+            id: spWh.id,
+            name: spWh.Title,
+            location: spWh.Location || '',
+            manager: spWh.Manager || '',
+            email: spWh.Email || '',
+            remarks: spWh.Remarks || '',
+        }));
+    } catch (error) {
+        console.error('Error getting warehouses:', error);
+        return [];
+    }
+};
+
+export const addWarehouse = async (warehouse: Omit<Warehouse, 'id'>): Promise<Warehouse> => {
+    const data: any = {
+        Title: warehouse.name,
+        Location: warehouse.location,
+        Manager: warehouse.manager,
+        Email: warehouse.email,
+        Remarks: warehouse.remarks,
+    };
+
+    const spWh = await createListItem<SharePointWarehouse>(sharePointConfig.listNames.warehouses, data);
+
+    return {
+        id: spWh.id,
+        name: spWh.Title,
+        location: spWh.Location || '',
+        manager: spWh.Manager || '',
+        email: spWh.Email || '',
+        remarks: spWh.Remarks || '',
+    };
+};
+
+export const updateWarehouse = async (id: string, updates: Partial<Warehouse>): Promise<void> => {
+    const spUpdates: any = {};
+    if (updates.name !== undefined) spUpdates.Title = updates.name;
+    if (updates.location !== undefined) spUpdates.Location = updates.location;
+    if (updates.manager !== undefined) spUpdates.Manager = updates.manager;
+    if (updates.email !== undefined) spUpdates.Email = updates.email;
+    if (updates.remarks !== undefined) spUpdates.Remarks = updates.remarks;
+
+    await updateListItem(sharePointConfig.listNames.warehouses, id, spUpdates);
+};
+
+export const deleteWarehouse = async (id: string): Promise<void> => {
+    await deleteListItem(sharePointConfig.listNames.warehouses, id);
+};
+
+// 출고처 관리
+export const getCustomers = async (): Promise<Customer[]> => {
+    try {
+        const spCustomers = await getListItems<SharePointCustomer>(sharePointConfig.listNames.customers);
+        return spCustomers.map(spCust => ({
+            id: spCust.id,
+            name: spCust.Title,
+            douzoneNumber: spCust.DouzoneNumber || '',
+            contact: spCust.Contact || '',
+            address: spCust.Address || '',
+            remarks: spCust.Remarks || '',
+        }));
+    } catch (error) {
+        console.error('Error getting customers:', error);
+        return [];
+    }
+};
+
+export const addCustomer = async (customer: Omit<Customer, 'id'>): Promise<Customer> => {
+    const data: any = {
+        Title: customer.name,
+        DouzoneNumber: customer.douzoneNumber,
+        Contact: customer.contact,
+        Address: customer.address,
+        Remarks: customer.remarks,
+    };
+
+    const spCust = await createListItem<SharePointCustomer>(sharePointConfig.listNames.customers, data);
+
+    return {
+        id: spCust.id,
+        name: spCust.Title,
+        douzoneNumber: spCust.DouzoneNumber || '',
+        contact: spCust.Contact || '',
+        address: spCust.Address || '',
+        remarks: spCust.Remarks || '',
+    };
+};
+
+export const updateCustomer = async (id: string, updates: Partial<Customer>): Promise<void> => {
+    const spUpdates: any = {};
+    if (updates.name !== undefined) spUpdates.Title = updates.name;
+    if (updates.douzoneNumber !== undefined) spUpdates.DouzoneNumber = updates.douzoneNumber;
+    if (updates.contact !== undefined) spUpdates.Contact = updates.contact;
+    if (updates.address !== undefined) spUpdates.Address = updates.address;
+    if (updates.remarks !== undefined) spUpdates.Remarks = updates.remarks;
+
+    await updateListItem(sharePointConfig.listNames.customers, id, spUpdates);
+};
+
+export const deleteCustomer = async (id: string): Promise<void> => {
+    await deleteListItem(sharePointConfig.listNames.customers, id);
+};
+
 // Deprecated: LocalStorage functions removed
 export const saveRentals = (_rentals: Rental[]): void => {
     console.warn('saveRentals is deprecated. Use addRental/updateRental instead.');
 };
+

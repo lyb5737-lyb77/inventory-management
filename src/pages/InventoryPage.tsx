@@ -1,15 +1,18 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Item, Transaction } from '../types';
-import { getItems, addTransaction, getTransactionsByDateRange } from '../storage';
+import { Item, Transaction, Warehouse } from '../types';
+import { getItems, addTransaction, getTransactionsByDateRange, getWarehouses } from '../storage';
 
 export default function InventoryPage() {
     const navigate = useNavigate();
     const [items, setItems] = useState<Item[]>([]);
+    const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
+    const [selectedWarehouse, setSelectedWarehouse] = useState<string>('전체');
     const [activeTab, setActiveTab] = useState<'stock' | 'in' | 'out' | 'search'>('stock');
 
     // 입고 폼
     const [inboundForm, setInboundForm] = useState({
+        warehouse: '',
         itemId: '',
         quantity: 0,
         date: new Date().toISOString().split('T')[0],
@@ -18,6 +21,7 @@ export default function InventoryPage() {
 
     // 출고 폼
     const [outboundForm, setOutboundForm] = useState({
+        warehouse: '',
         itemId: '',
         quantity: 0,
         target: '',
@@ -45,6 +49,8 @@ export default function InventoryPage() {
     });
 
     const [selectedPeriod, setSelectedPeriod] = useState<number | null>(null);
+    const [searchType, setSearchType] = useState<'all' | 'item' | 'customer'>('all');
+    const [searchKeyword, setSearchKeyword] = useState('');
 
     const [searchResults, setSearchResults] = useState<Transaction[]>([]);
 
@@ -53,8 +59,9 @@ export default function InventoryPage() {
     }, []);
 
     const loadData = async () => {
-        const itemsData = await getItems();
+        const [itemsData, warehousesData] = await Promise.all([getItems(), getWarehouses()]);
         setItems(itemsData);
+        setWarehouses(warehousesData);
     };
 
     const handleInbound = async (e: React.FormEvent) => {
@@ -68,10 +75,12 @@ export default function InventoryPage() {
             type: 'IN',
             quantity: inboundForm.quantity,
             date: inboundForm.date,
+            warehouse: inboundForm.warehouse,
             remarks: inboundForm.remarks,
         });
 
         setInboundForm({
+            warehouse: '',
             itemId: '',
             quantity: 0,
             date: new Date().toISOString().split('T')[0],
@@ -98,10 +107,12 @@ export default function InventoryPage() {
             quantity: outboundForm.quantity,
             date: outboundForm.date,
             target: outboundForm.target,
+            warehouse: outboundForm.warehouse,
             remarks: outboundForm.remarks,
         });
 
         setOutboundForm({
+            warehouse: '',
             itemId: '',
             quantity: 0,
             target: '',
@@ -114,7 +125,19 @@ export default function InventoryPage() {
 
     const handleSearch = async (e: React.FormEvent) => {
         e.preventDefault();
-        const results = await getTransactionsByDateRange(searchForm.startDate, searchForm.endDate);
+        let results = await getTransactionsByDateRange(searchForm.startDate, searchForm.endDate);
+
+        // 조회 유형에 따른 필터링
+        if (searchType === 'item' && searchKeyword) {
+            results = results.filter(t =>
+                t.itemName.toLowerCase().includes(searchKeyword.toLowerCase())
+            );
+        } else if (searchType === 'customer' && searchKeyword) {
+            results = results.filter(t =>
+                t.target && t.target.toLowerCase().includes(searchKeyword.toLowerCase())
+            );
+        }
+
         setSearchResults(results);
     };
 
@@ -206,15 +229,28 @@ export default function InventoryPage() {
                             : 'text-gray-300 hover:text-white'
                             }`}
                     >
-                        재고 검색
+                        입출고조회
                     </button>
                 </div>
 
                 {/* 현재고 현황 */}
                 {activeTab === 'stock' && (
                     <div className="bg-white/10 backdrop-blur-lg rounded-2xl shadow-2xl overflow-hidden border border-white/20">
-                        <div className="p-6 bg-black/30 border-b border-white/10">
+                        <div className="p-6 bg-black/30 border-b border-white/10 flex justify-between items-center">
                             <h2 className="text-2xl font-bold text-white">현재고 현황</h2>
+                            <select
+                                value={selectedWarehouse}
+                                onChange={(e) => setSelectedWarehouse(e.target.value)}
+                                className="bg-white/10 border border-white/20 rounded-lg text-white px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            >
+                                <option value="전체" className="bg-gray-800">전체 창고</option>
+                                <option value="비트본사" className="bg-gray-800">비트본사</option>
+                                {warehouses.map((wh) => (
+                                    <option key={wh.id} value={wh.name} className="bg-gray-800">
+                                        {wh.name}
+                                    </option>
+                                ))}
+                            </select>
                         </div>
                         <div className="overflow-x-auto">
                             <table className="min-w-full divide-y divide-white/20">
@@ -222,6 +258,7 @@ export default function InventoryPage() {
                                     <tr>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">품명</th>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">제품그룹</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">창고</th>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">품번</th>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">현재고</th>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">가격</th>
@@ -235,19 +272,22 @@ export default function InventoryPage() {
                                             </td>
                                         </tr>
                                     ) : (
-                                        items.map((item) => (
-                                            <tr key={item.id} className="hover:bg-white/5 transition">
-                                                <td className="px-6 py-4 whitespace-nowrap text-white font-medium">{item.name}</td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-gray-300">{item.group}</td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-gray-300">{item.partNumber}</td>
-                                                <td className="px-6 py-4 whitespace-nowrap">
-                                                    <span className={`font-bold ${item.quantity > 10 ? 'text-green-400' : item.quantity > 0 ? 'text-yellow-400' : 'text-red-400'}`}>
-                                                        {item.quantity}
-                                                    </span>
-                                                </td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-gray-300">₩{item.price.toLocaleString()}</td>
-                                            </tr>
-                                        ))
+                                        items
+                                            .filter(item => selectedWarehouse === '전체' || (item.warehouse || '비트본사') === selectedWarehouse)
+                                            .map((item) => (
+                                                <tr key={item.id} className="hover:bg-white/5 transition">
+                                                    <td className="px-6 py-4 whitespace-nowrap text-white font-medium">{item.name}</td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-gray-300">{item.group}</td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-gray-300">{item.warehouse || '비트본사'}</td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-gray-300">{item.partNumber}</td>
+                                                    <td className="px-6 py-4 whitespace-nowrap">
+                                                        <span className={`font-bold ${item.quantity > 10 ? 'text-green-400' : item.quantity > 0 ? 'text-yellow-400' : 'text-red-400'}`}>
+                                                            {item.quantity}
+                                                        </span>
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-gray-300">₩{item.price.toLocaleString()}</td>
+                                                </tr>
+                                            ))
                                     )}
                                 </tbody>
                             </table>
@@ -261,19 +301,39 @@ export default function InventoryPage() {
                         <h2 className="text-2xl font-bold text-white mb-6">입고 처리</h2>
                         <form onSubmit={handleInbound} className="space-y-4 max-w-md">
                             <div>
+                                <label className="block text-sm font-medium text-gray-300 mb-1">창고 선택</label>
+                                <select
+                                    required
+                                    value={inboundForm.warehouse}
+                                    onChange={(e) => setInboundForm({ ...inboundForm, warehouse: e.target.value, itemId: '' })}
+                                    className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-green-500"
+                                >
+                                    <option value="">창고를 선택하세요</option>
+                                    <option value="비트본사" className="bg-gray-800">비트본사</option>
+                                    {warehouses.map((wh) => (
+                                        <option key={wh.id} value={wh.name} className="bg-gray-800">
+                                            {wh.name}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div>
                                 <label className="block text-sm font-medium text-gray-300 mb-1">품명 선택</label>
                                 <select
                                     required
                                     value={inboundForm.itemId}
                                     onChange={(e) => setInboundForm({ ...inboundForm, itemId: e.target.value })}
-                                    className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-green-500"
+                                    disabled={!inboundForm.warehouse}
+                                    className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-50"
                                 >
                                     <option value="">선택하세요</option>
-                                    {items.map((item) => (
-                                        <option key={item.id} value={item.id} className="bg-gray-800">
-                                            {item.name} ({item.partNumber})
-                                        </option>
-                                    ))}
+                                    {items
+                                        .filter(item => (item.warehouse || '비트본사') === inboundForm.warehouse)
+                                        .map((item) => (
+                                            <option key={item.id} value={item.id} className="bg-gray-800">
+                                                {item.name} ({item.partNumber})
+                                            </option>
+                                        ))}
                                 </select>
                             </div>
                             <div>
@@ -322,19 +382,39 @@ export default function InventoryPage() {
                         <h2 className="text-2xl font-bold text-white mb-6">출고 처리</h2>
                         <form onSubmit={handleOutbound} className="space-y-4 max-w-md">
                             <div>
+                                <label className="block text-sm font-medium text-gray-300 mb-1">창고 선택</label>
+                                <select
+                                    required
+                                    value={outboundForm.warehouse}
+                                    onChange={(e) => setOutboundForm({ ...outboundForm, warehouse: e.target.value, itemId: '' })}
+                                    className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-red-500"
+                                >
+                                    <option value="">창고를 선택하세요</option>
+                                    <option value="비트본사" className="bg-gray-800">비트본사</option>
+                                    {warehouses.map((wh) => (
+                                        <option key={wh.id} value={wh.name} className="bg-gray-800">
+                                            {wh.name}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div>
                                 <label className="block text-sm font-medium text-gray-300 mb-1">품명 선택</label>
                                 <select
                                     required
                                     value={outboundForm.itemId}
                                     onChange={(e) => setOutboundForm({ ...outboundForm, itemId: e.target.value })}
-                                    className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-red-500"
+                                    disabled={!outboundForm.warehouse}
+                                    className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-red-500 disabled:opacity-50"
                                 >
                                     <option value="">선택하세요</option>
-                                    {items.map((item) => (
-                                        <option key={item.id} value={item.id} className="bg-gray-800">
-                                            {item.name} ({item.partNumber}) - 재고: {item.quantity}
-                                        </option>
-                                    ))}
+                                    {items
+                                        .filter(item => (item.warehouse || '비트본사') === outboundForm.warehouse)
+                                        .map((item) => (
+                                            <option key={item.id} value={item.id} className="bg-gray-800">
+                                                {item.name} ({item.partNumber}) - 재고: {item.quantity}
+                                            </option>
+                                        ))}
                                 </select>
                             </div>
                             <div>
@@ -391,7 +471,7 @@ export default function InventoryPage() {
                 {activeTab === 'search' && (
                     <div className="space-y-6">
                         <div className="bg-white/10 backdrop-blur-lg rounded-2xl shadow-2xl p-6 border border-white/20">
-                            <h2 className="text-2xl font-bold text-white mb-6">날짜별 재고 검색</h2>
+                            <h2 className="text-2xl font-bold text-white mb-6">입출고조회</h2>
 
                             {/* 기간 선택 라디오 버튼 */}
                             <div className="flex gap-6 mb-6">
@@ -414,33 +494,68 @@ export default function InventoryPage() {
                                 ))}
                             </div>
 
-                            <form onSubmit={handleSearch} className="flex gap-4 items-end">
-                                <div className="flex-1">
-                                    <label className="block text-sm font-medium text-gray-300 mb-1">시작 날짜</label>
-                                    <input
-                                        type="date"
-                                        required
-                                        value={searchForm.startDate}
-                                        onChange={(e) => handleDateChange('startDate', e.target.value)}
-                                        className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
-                                    />
+                            <form onSubmit={handleSearch} className="space-y-4">
+                                <div className="flex gap-4">
+                                    <div className="flex-1">
+                                        <label className="block text-sm font-medium text-gray-300 mb-1">시작 날짜</label>
+                                        <input
+                                            type="date"
+                                            required
+                                            value={searchForm.startDate}
+                                            onChange={(e) => handleDateChange('startDate', e.target.value)}
+                                            className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                        />
+                                    </div>
+                                    <div className="flex-1">
+                                        <label className="block text-sm font-medium text-gray-300 mb-1">종료 날짜</label>
+                                        <input
+                                            type="date"
+                                            required
+                                            value={searchForm.endDate}
+                                            onChange={(e) => handleDateChange('endDate', e.target.value)}
+                                            className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                        />
+                                    </div>
                                 </div>
-                                <div className="flex-1">
-                                    <label className="block text-sm font-medium text-gray-300 mb-1">종료 날짜</label>
-                                    <input
-                                        type="date"
-                                        required
-                                        value={searchForm.endDate}
-                                        onChange={(e) => handleDateChange('endDate', e.target.value)}
-                                        className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
-                                    />
+
+                                {/* 조회 유형 필터 */}
+                                <div className="flex gap-4 items-end">
+                                    <div className="flex-1">
+                                        <label className="block text-sm font-medium text-gray-300 mb-1">조회 유형</label>
+                                        <select
+                                            value={searchType}
+                                            onChange={(e) => {
+                                                setSearchType(e.target.value as 'all' | 'item' | 'customer');
+                                                setSearchKeyword('');
+                                            }}
+                                            className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                        >
+                                            <option value="all" className="bg-gray-800">전체</option>
+                                            <option value="item" className="bg-gray-800">품목</option>
+                                            <option value="customer" className="bg-gray-800">더존번호(출고처)</option>
+                                        </select>
+                                    </div>
+                                    {searchType !== 'all' && (
+                                        <div className="flex-1">
+                                            <label className="block text-sm font-medium text-gray-300 mb-1">
+                                                {searchType === 'item' ? '품목명' : '출고처명'}
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={searchKeyword}
+                                                onChange={(e) => setSearchKeyword(e.target.value)}
+                                                placeholder={searchType === 'item' ? '품목명으로 검색' : '출고처명으로 검색'}
+                                                className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                            />
+                                        </div>
+                                    )}
+                                    <button
+                                        type="submit"
+                                        className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white font-semibold py-2 px-6 rounded-lg shadow-lg flex-shrink-0"
+                                    >
+                                        조회
+                                    </button>
                                 </div>
-                                <button
-                                    type="submit"
-                                    className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white font-semibold py-2 px-6 rounded-lg shadow-lg"
-                                >
-                                    검색
-                                </button>
                             </form>
                         </div>
 

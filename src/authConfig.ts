@@ -15,7 +15,7 @@ export const msalConfig: Configuration = {
 };
 
 export const loginRequest = {
-    scopes: ['User.Read', 'Sites.ReadWrite.All'],
+    scopes: ['User.Read', 'Sites.ReadWrite.All', 'Mail.Send'],
 };
 
 // SharePoint 사이트 설정
@@ -26,6 +26,8 @@ export const sharePointConfig = {
         productGroups: 'ProductGroups',
         transactions: 'Transactions',
         rentals: 'RentalContracts',
+        warehouses: 'Warehouses',
+        customers: 'Customers',
     },
 };
 

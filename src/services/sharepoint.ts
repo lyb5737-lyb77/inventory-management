@@ -1,27 +1,6 @@
-import { Client } from '@microsoft/microsoft-graph-client';
-import { msalInstance, sharePointConfig } from '../authConfig';
+import { getGraphClient } from './graph';
+import { sharePointConfig } from '../authConfig';
 
-// Microsoft Graph 클라이언트 생성
-export const getGraphClient = async (): Promise<Client> => {
-    const account = msalInstance.getAllAccounts()[0];
-
-    if (!account) {
-        throw new Error('No account found. Please login first.');
-    }
-
-    // 액세스 토큰 획득
-    const tokenResponse = await msalInstance.acquireTokenSilent({
-        scopes: ['Sites.ReadWrite.All'],
-        account: account,
-    });
-
-    // Graph 클라이언트 생성
-    return Client.init({
-        authProvider: (done) => {
-            done(null, tokenResponse.accessToken);
-        },
-    });
-};
 
 // SharePoint 사이트 ID 가져오기 (캐싱)
 let siteId: string | null = null;
