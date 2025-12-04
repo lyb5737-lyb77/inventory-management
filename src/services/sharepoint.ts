@@ -27,13 +27,24 @@ export const getListItems = async <T>(listName: string): Promise<T[]> => {
         const client = await getGraphClient();
         const sId = await getSiteId();
 
-        const response = await client
+        let allItems: any[] = [];
+
+        let response = await client
             .api(`/sites/${sId}/lists/${listName}/items`)
             .expand('fields')
-            .top(5000) // 최대 5000개까지 조회
+            .top(5000)
             .get();
 
-        return response.value.map((item: any) => item.fields);
+        allItems = allItems.concat(response.value);
+
+        // 다음 페이지가 있는 경우 계속 가져오기 (Pagination)
+        while (response['@odata.nextLink']) {
+            console.log(`Fetching next page for ${listName}...`);
+            response = await client.api(response['@odata.nextLink']).get();
+            allItems = allItems.concat(response.value);
+        }
+
+        return allItems.map((item: any) => item.fields);
     } catch (error: any) {
         console.error(`Error fetching list items from ${listName}:`, error);
         throw new Error(`SharePoint 데이터 조회 실패: ${error.message}`);

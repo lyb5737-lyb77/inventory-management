@@ -735,7 +735,6 @@ export default function AdminPage() {
                                     onChange={(e) => setItemFormData({ ...itemFormData, warehouse: e.target.value })}
                                     className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                                 >
-                                    <option value="비트본사" className="bg-gray-800">비트본사 (기본)</option>
                                     {warehouses.map((wh) => (
                                         <option key={wh.id} value={wh.name} className="bg-gray-800">
                                             {wh.name}

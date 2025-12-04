@@ -127,15 +127,21 @@ export default function InventoryPage() {
         e.preventDefault();
         let results = await getTransactionsByDateRange(searchForm.startDate, searchForm.endDate);
 
-        // 조회 유형에 따른 필터링
-        if (searchType === 'item' && searchKeyword) {
-            results = results.filter(t =>
-                t.itemName.toLowerCase().includes(searchKeyword.toLowerCase())
-            );
-        } else if (searchType === 'customer' && searchKeyword) {
-            results = results.filter(t =>
-                t.target && t.target.toLowerCase().includes(searchKeyword.toLowerCase())
-            );
+        // 날짜 내림차순 정렬 (최신순)
+        results.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+        // 검색어 필터링
+        if (searchType !== 'all' && searchKeyword) {
+            const keyword = searchKeyword.toLowerCase();
+            results = results.filter(t => {
+                if (searchType === 'item') {
+                    return t.itemName.toLowerCase().includes(keyword);
+                } else if (searchType === 'customer') {
+                    // target(출고처)이 있는 경우에만 검색
+                    return t.target && t.target.toLowerCase().includes(keyword);
+                }
+                return true;
+            });
         }
 
         setSearchResults(results);
@@ -244,7 +250,6 @@ export default function InventoryPage() {
                                 className="bg-white/10 border border-white/20 rounded-lg text-white px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                             >
                                 <option value="전체" className="bg-gray-800">전체 창고</option>
-                                <option value="비트본사" className="bg-gray-800">비트본사</option>
                                 {warehouses.map((wh) => (
                                     <option key={wh.id} value={wh.name} className="bg-gray-800">
                                         {wh.name}
@@ -309,7 +314,6 @@ export default function InventoryPage() {
                                     className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-green-500"
                                 >
                                     <option value="">창고를 선택하세요</option>
-                                    <option value="비트본사" className="bg-gray-800">비트본사</option>
                                     {warehouses.map((wh) => (
                                         <option key={wh.id} value={wh.name} className="bg-gray-800">
                                             {wh.name}
@@ -390,7 +394,6 @@ export default function InventoryPage() {
                                     className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-red-500"
                                 >
                                     <option value="">창고를 선택하세요</option>
-                                    <option value="비트본사" className="bg-gray-800">비트본사</option>
                                     {warehouses.map((wh) => (
                                         <option key={wh.id} value={wh.name} className="bg-gray-800">
                                             {wh.name}
