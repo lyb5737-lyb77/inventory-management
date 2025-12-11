@@ -60,6 +60,8 @@ export default function OutboundRequestPage() {
         !formData.warehouse || (item.warehouse || '비트본사') === formData.warehouse
     );
 
+    const selectedCustomer = customers.find(c => c.id === formData.customerId);
+
     const handleCustomerSelect = (customer: Customer) => {
         setFormData(prev => ({
             ...prev,
@@ -347,6 +349,18 @@ export default function OutboundRequestPage() {
                                     검색
                                 </button>
                             </div>
+                            {selectedCustomer && (
+                                <div className="mt-4 p-4 bg-white/5 rounded-lg border border-white/10 space-y-2">
+                                    <div className="flex gap-4">
+                                        <div className="w-20 text-gray-400 font-medium">주소</div>
+                                        <div className="text-white">{selectedCustomer.address}</div>
+                                    </div>
+                                    <div className="flex gap-4">
+                                        <div className="w-20 text-gray-400 font-medium">연락처</div>
+                                        <div className="text-white">{selectedCustomer.contact}</div>
+                                    </div>
+                                </div>
+                            )}
                         </div>
 
                         {/* Remarks */}

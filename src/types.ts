@@ -21,6 +21,7 @@ export interface Customer {
     douzoneNumber: string; // 더존번호
     name: string;          // 이름
     contact: string;       // 연락처
+    email: string;         // 이메일
     address: string;       // 주소
     remarks: string;       // 비고
 }

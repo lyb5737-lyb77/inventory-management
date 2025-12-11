@@ -55,9 +55,12 @@ export default function AdminPage() {
         name: '',
         douzoneNumber: '',
         contact: '',
+        email: '',
         address: '',
         remarks: '',
     });
+
+    const [customerSearch, setCustomerSearch] = useState('');
 
     // 로딩 및 에러 상태
     const [loading, setLoading] = useState(false);
@@ -308,6 +311,7 @@ export default function AdminPage() {
             name: customer.name,
             douzoneNumber: customer.douzoneNumber,
             contact: customer.contact,
+            email: customer.email || '',
             address: customer.address,
             remarks: customer.remarks,
         });
@@ -334,6 +338,7 @@ export default function AdminPage() {
             name: '',
             douzoneNumber: '',
             contact: '',
+            email: '',
             address: '',
             remarks: '',
         });
@@ -632,12 +637,21 @@ export default function AdminPage() {
                     <>
                         <div className="flex justify-between items-center mb-6">
                             <h2 className="text-3xl font-bold text-white">출고처 관리</h2>
-                            <button
-                                onClick={() => setIsCustomerModalOpen(true)}
-                                className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-semibold py-2 px-6 rounded-lg shadow-lg transform transition hover:scale-105"
-                            >
-                                + 출고처 추가
-                            </button>
+                            <div className="flex gap-4">
+                                <input
+                                    type="text"
+                                    placeholder="출고처명 또는 더존번호 검색"
+                                    value={customerSearch}
+                                    onChange={(e) => setCustomerSearch(e.target.value)}
+                                    className="px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                />
+                                <button
+                                    onClick={() => setIsCustomerModalOpen(true)}
+                                    className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-semibold py-2 px-6 rounded-lg shadow-lg transform transition hover:scale-105"
+                                >
+                                    + 출고처 추가
+                                </button>
+                            </div>
                         </div>
 
                         <div className="bg-white/10 backdrop-blur-lg rounded-2xl shadow-2xl overflow-hidden border border-white/20">
@@ -648,6 +662,7 @@ export default function AdminPage() {
                                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">출고처명</th>
                                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">더존번호</th>
                                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">연락처</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">이메일</th>
                                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">주소</th>
                                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">비고</th>
                                             <th className="px-6 py-3 text-right text-xs font-medium text-gray-300 uppercase tracking-wider">작업</th>
@@ -661,29 +676,35 @@ export default function AdminPage() {
                                                 </td>
                                             </tr>
                                         ) : (
-                                            customers.map((customer) => (
-                                                <tr key={customer.id} className="hover:bg-white/5 transition">
-                                                    <td className="px-6 py-4 whitespace-nowrap text-white font-medium">{customer.name}</td>
-                                                    <td className="px-6 py-4 whitespace-nowrap text-gray-300">{customer.douzoneNumber}</td>
-                                                    <td className="px-6 py-4 whitespace-nowrap text-gray-300">{customer.contact}</td>
-                                                    <td className="px-6 py-4 text-gray-300">{customer.address}</td>
-                                                    <td className="px-6 py-4 text-gray-300">{customer.remarks || '-'}</td>
-                                                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                                        <button
-                                                            onClick={() => handleCustomerEdit(customer)}
-                                                            className="text-blue-400 hover:text-blue-300 mr-3"
-                                                        >
-                                                            수정
-                                                        </button>
-                                                        <button
-                                                            onClick={() => handleCustomerDelete(customer.id)}
-                                                            className="text-red-400 hover:text-red-300"
-                                                        >
-                                                            삭제
-                                                        </button>
-                                                    </td>
-                                                </tr>
-                                            ))
+                                            customers
+                                                .filter(c =>
+                                                    c.name.includes(customerSearch) ||
+                                                    c.douzoneNumber.includes(customerSearch)
+                                                )
+                                                .map((customer) => (
+                                                    <tr key={customer.id} className="hover:bg-white/5 transition">
+                                                        <td className="px-6 py-4 whitespace-nowrap text-white font-medium">{customer.name}</td>
+                                                        <td className="px-6 py-4 whitespace-nowrap text-gray-300">{customer.douzoneNumber}</td>
+                                                        <td className="px-6 py-4 whitespace-nowrap text-gray-300">{customer.contact}</td>
+                                                        <td className="px-6 py-4 whitespace-nowrap text-gray-300">{customer.email}</td>
+                                                        <td className="px-6 py-4 text-gray-300">{customer.address}</td>
+                                                        <td className="px-6 py-4 text-gray-300">{customer.remarks || '-'}</td>
+                                                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                                            <button
+                                                                onClick={() => handleCustomerEdit(customer)}
+                                                                className="text-blue-400 hover:text-blue-300 mr-3"
+                                                            >
+                                                                수정
+                                                            </button>
+                                                            <button
+                                                                onClick={() => handleCustomerDelete(customer.id)}
+                                                                className="text-red-400 hover:text-red-300"
+                                                            >
+                                                                삭제
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                ))
                                         )}
                                     </tbody>
                                 </table>
@@ -957,15 +978,26 @@ export default function AdminPage() {
                                         className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                                     />
                                 </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-300 mb-1">연락처</label>
-                                    <input
-                                        type="text"
-                                        required
-                                        value={customerFormData.contact}
-                                        onChange={(e) => setCustomerFormData({ ...customerFormData, contact: e.target.value })}
-                                        className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    />
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-300 mb-1">연락처</label>
+                                        <input
+                                            type="text"
+                                            required
+                                            value={customerFormData.contact}
+                                            onChange={(e) => setCustomerFormData({ ...customerFormData, contact: e.target.value })}
+                                            className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-300 mb-1">이메일</label>
+                                        <input
+                                            type="email"
+                                            value={customerFormData.email}
+                                            onChange={(e) => setCustomerFormData({ ...customerFormData, email: e.target.value })}
+                                            className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        />
+                                    </div>
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-300 mb-1">주소</label>

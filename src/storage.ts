@@ -46,6 +46,7 @@ interface SharePointCustomer {
     Title: string; // Name
     DouzoneNumber: string;
     Contact: string;
+    email: string; // Changed to lowercase 'email' as requested
     Address: string;
     Remarks: string;
 }
@@ -422,6 +423,7 @@ export const getCustomers = async (): Promise<Customer[]> => {
             name: spCust.Title,
             douzoneNumber: spCust.DouzoneNumber || '',
             contact: spCust.Contact || '',
+            email: spCust.email || '',
             address: spCust.Address || '',
             remarks: spCust.Remarks || '',
         }));
@@ -436,6 +438,7 @@ export const addCustomer = async (customer: Omit<Customer, 'id'>): Promise<Custo
         Title: customer.name,
         DouzoneNumber: customer.douzoneNumber,
         Contact: customer.contact,
+        email: customer.email,
         Address: customer.address,
         Remarks: customer.remarks,
     };
@@ -447,6 +450,7 @@ export const addCustomer = async (customer: Omit<Customer, 'id'>): Promise<Custo
         name: spCust.Title,
         douzoneNumber: spCust.DouzoneNumber || '',
         contact: spCust.Contact || '',
+        email: spCust.email || '',
         address: spCust.Address || '',
         remarks: spCust.Remarks || '',
     };
@@ -457,6 +461,7 @@ export const updateCustomer = async (id: string, updates: Partial<Customer>): Pr
     if (updates.name !== undefined) spUpdates.Title = updates.name;
     if (updates.douzoneNumber !== undefined) spUpdates.DouzoneNumber = updates.douzoneNumber;
     if (updates.contact !== undefined) spUpdates.Contact = updates.contact;
+    if (updates.email !== undefined) spUpdates.email = updates.email;
     if (updates.address !== undefined) spUpdates.Address = updates.address;
     if (updates.remarks !== undefined) spUpdates.Remarks = updates.remarks;
 
@@ -471,4 +476,3 @@ export const deleteCustomer = async (id: string): Promise<void> => {
 export const saveRentals = (_rentals: Rental[]): void => {
     console.warn('saveRentals is deprecated. Use addRental/updateRental instead.');
 };
-

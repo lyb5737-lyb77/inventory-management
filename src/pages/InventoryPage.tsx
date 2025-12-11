@@ -49,7 +49,7 @@ export default function InventoryPage() {
     });
 
     const [selectedPeriod, setSelectedPeriod] = useState<number | null>(null);
-    const [searchType, setSearchType] = useState<'all' | 'item' | 'customer'>('all');
+    const [searchType, setSearchType] = useState<'all' | 'item' | 'customer' | 'warehouse'>('all');
     const [searchKeyword, setSearchKeyword] = useState('');
 
     const [searchResults, setSearchResults] = useState<Transaction[]>([]);
@@ -139,6 +139,8 @@ export default function InventoryPage() {
                 } else if (searchType === 'customer') {
                     // target(출고처)이 있는 경우에만 검색
                     return t.target && t.target.toLowerCase().includes(keyword);
+                } else if (searchType === 'warehouse') {
+                    return t.warehouse && t.warehouse.toLowerCase().includes(keyword);
                 }
                 return true;
             });
@@ -536,20 +538,36 @@ export default function InventoryPage() {
                                             <option value="all" className="bg-gray-800">전체</option>
                                             <option value="item" className="bg-gray-800">품목</option>
                                             <option value="customer" className="bg-gray-800">더존번호(출고처)</option>
+                                            <option value="warehouse" className="bg-gray-800">창고</option>
                                         </select>
                                     </div>
                                     {searchType !== 'all' && (
                                         <div className="flex-1">
                                             <label className="block text-sm font-medium text-gray-300 mb-1">
-                                                {searchType === 'item' ? '품목명' : '출고처명'}
+                                                {searchType === 'item' ? '품목명' : searchType === 'customer' ? '출고처명' : '창고 선택'}
                                             </label>
-                                            <input
-                                                type="text"
-                                                value={searchKeyword}
-                                                onChange={(e) => setSearchKeyword(e.target.value)}
-                                                placeholder={searchType === 'item' ? '품목명으로 검색' : '출고처명으로 검색'}
-                                                className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
-                                            />
+                                            {searchType === 'warehouse' ? (
+                                                <select
+                                                    value={searchKeyword}
+                                                    onChange={(e) => setSearchKeyword(e.target.value)}
+                                                    className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                                >
+                                                    <option value="" className="bg-gray-800">전체 창고</option>
+                                                    {warehouses.map((wh) => (
+                                                        <option key={wh.id} value={wh.name} className="bg-gray-800">
+                                                            {wh.name}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                            ) : (
+                                                <input
+                                                    type="text"
+                                                    value={searchKeyword}
+                                                    onChange={(e) => setSearchKeyword(e.target.value)}
+                                                    placeholder={searchType === 'item' ? '품목명으로 검색' : '출고처명으로 검색'}
+                                                    className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                                />
+                                            )}
                                         </div>
                                     )}
                                     <button
