@@ -15,7 +15,7 @@ export const msalConfig: Configuration = {
 };
 
 export const loginRequest = {
-    scopes: ['User.Read', 'Sites.ReadWrite.All', 'Mail.Send'],
+    scopes: ['User.Read', 'Sites.ReadWrite.All', 'Mail.Send', 'Files.ReadWrite.All'],
 };
 
 // SharePoint 사이트 설정

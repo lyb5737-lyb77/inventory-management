@@ -659,19 +659,17 @@ export default function AdminPage() {
                                 <table className="min-w-full divide-y divide-white/20">
                                     <thead className="bg-black/30">
                                         <tr>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">출고처명</th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">더존번호</th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">연락처</th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">이메일</th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">주소</th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">비고</th>
-                                            <th className="px-6 py-3 text-right text-xs font-medium text-gray-300 uppercase tracking-wider">작업</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider whitespace-nowrap w-[250px]">출고처명</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider whitespace-nowrap">더존번호</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider whitespace-nowrap">연락처</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider min-w-[200px]">이메일</th>
+                                            <th className="px-6 py-3 text-right text-xs font-medium text-gray-300 uppercase tracking-wider whitespace-nowrap sticky right-0 bg-black/30 backdrop-blur z-10 shadow-xl border-l border-white/10">작업</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-white/10">
                                         {customers.length === 0 ? (
                                             <tr>
-                                                <td colSpan={6} className="px-6 py-12 text-center text-gray-400">
+                                                <td colSpan={5} className="px-6 py-12 text-center text-gray-400">
                                                     등록된 출고처가 없습니다.
                                                 </td>
                                             </tr>
@@ -682,26 +680,26 @@ export default function AdminPage() {
                                                     c.douzoneNumber.includes(customerSearch)
                                                 )
                                                 .map((customer) => (
-                                                    <tr key={customer.id} className="hover:bg-white/5 transition">
-                                                        <td className="px-6 py-4 whitespace-nowrap text-white font-medium">{customer.name}</td>
+                                                    <tr key={customer.id} className="bg-gray-900/40 hover:bg-gray-900/60 transition group">
+                                                        <td className="px-6 py-4 truncate max-w-[250px] text-white font-medium" title={customer.name}>{customer.name}</td>
                                                         <td className="px-6 py-4 whitespace-nowrap text-gray-300">{customer.douzoneNumber}</td>
                                                         <td className="px-6 py-4 whitespace-nowrap text-gray-300">{customer.contact}</td>
-                                                        <td className="px-6 py-4 whitespace-nowrap text-gray-300">{customer.email}</td>
-                                                        <td className="px-6 py-4 text-gray-300">{customer.address}</td>
-                                                        <td className="px-6 py-4 text-gray-300">{customer.remarks || '-'}</td>
-                                                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                                            <button
-                                                                onClick={() => handleCustomerEdit(customer)}
-                                                                className="text-blue-400 hover:text-blue-300 mr-3"
-                                                            >
-                                                                수정
-                                                            </button>
-                                                            <button
-                                                                onClick={() => handleCustomerDelete(customer.id)}
-                                                                className="text-red-400 hover:text-red-300"
-                                                            >
-                                                                삭제
-                                                            </button>
+                                                        <td className="px-6 py-4 text-gray-300 break-words">{customer.email}</td>
+                                                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium sticky right-0 bg-gray-900/40 backdrop-blur border-l border-white/10 z-10 shadow-xl group-hover:bg-gray-900/60 transition-colors">
+                                                            <div className="flex justify-end gap-2">
+                                                                <button
+                                                                    onClick={() => handleCustomerEdit(customer)}
+                                                                    className="px-3 py-1 bg-blue-500/20 text-blue-300 rounded-full hover:bg-blue-500/30 transition-colors"
+                                                                >
+                                                                    수정
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => handleCustomerDelete(customer.id)}
+                                                                    className="px-3 py-1 bg-red-500/20 text-red-300 rounded-full hover:bg-red-500/30 transition-colors"
+                                                                >
+                                                                    삭제
+                                                                </button>
+                                                            </div>
                                                         </td>
                                                     </tr>
                                                 ))
