@@ -293,8 +293,8 @@ export default function IpManagementPage() {
                     <div className="flex-1 overflow-y-auto p-2 space-y-4">
                         {['A', 'B', 'C'].map(device => (
                             <div key={device}>
-                                <div className="px-2 py-1 text-xs font-bold text-gray-400 uppercase mb-1">
-                                    Equipment {device}
+                                <div className="px-2 py-1 text-sm font-bold text-gray-400 uppercase mb-1">
+                                    {device} 장비
                                 </div>
                                 <div className="space-y-1">
                                     {rangesByDevice[device]?.map(range => (
@@ -304,8 +304,8 @@ export default function IpManagementPage() {
                                             className={`group flex items-center justify-between px-3 py-2 rounded-lg cursor-pointer transition ${selectedRangeId === range.id ? 'bg-blue-600 text-white' : 'text-gray-300 hover:bg-white/10'}`}
                                         >
                                             <div className="truncate">
-                                                <div className="text-sm font-medium truncate">{range.title}</div>
-                                                <div className="text-xs opacity-70 truncate">{range.startIp}~</div>
+                                                <div className="text-base font-medium truncate">{range.title}</div>
+                                                <div className="text-sm opacity-70 truncate">{range.startIp}~</div>
                                             </div>
                                             {selectedRangeId === range.id && (
                                                 <button
