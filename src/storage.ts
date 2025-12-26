@@ -1,4 +1,4 @@
-import { Item, Transaction, ProductGroup, Rental, Warehouse, Customer } from './types';
+import { Item, Transaction, ProductGroup, Rental, Warehouse, Customer, IpRange, IpDetail } from './types';
 import { getListItems, createListItem, updateListItem, deleteListItem } from './services/sharepoint';
 import { sharePointConfig } from './authConfig';
 
@@ -475,4 +475,151 @@ export const deleteCustomer = async (id: string): Promise<void> => {
 // Deprecated: LocalStorage functions removed
 export const saveRentals = (_rentals: Rental[]): void => {
     console.warn('saveRentals is deprecated. Use addRental/updateRental instead.');
+};
+
+// IP 관리
+interface SharePointIpRange {
+    id: string;
+    Title: string;        // 대역명
+    DeviceName: string;   // 장비명
+    StartIP: string;
+    EndIP: string;
+    Gateway: string;
+    SubnetMask: string;
+    Description: string;
+}
+
+interface SharePointIpDetail {
+    id: string;
+    Title: string;        // IP 주소
+    RangeId: string;
+    Department: string;
+    UserName: string;
+    Usage: string;
+    Status: string;
+}
+
+export const getIpRanges = async (): Promise<IpRange[]> => {
+    try {
+        const spRanges = await getListItems<SharePointIpRange>(sharePointConfig.listNames.ipRanges);
+        return spRanges.map(spRange => ({
+            id: spRange.id,
+            title: spRange.Title,
+            device: spRange.DeviceName || '',
+            startIp: spRange.StartIP || '',
+            endIp: spRange.EndIP || '',
+            gateway: spRange.Gateway || '',
+            subnetMask: spRange.SubnetMask || '',
+            description: spRange.Description || '',
+        }));
+    } catch (error) {
+        console.error('Error getting IP ranges:', error);
+        return [];
+    }
+};
+
+export const addIpRange = async (range: Omit<IpRange, 'id'>): Promise<IpRange> => {
+    const data: any = {
+        Title: range.title,
+        DeviceName: range.device,
+        StartIP: range.startIp,
+        EndIP: range.endIp,
+        Gateway: range.gateway || '',
+        SubnetMask: range.subnetMask || '',
+        Description: range.description || '',
+    };
+
+    const spRange = await createListItem<SharePointIpRange>(sharePointConfig.listNames.ipRanges, data);
+
+    return {
+        id: spRange.id,
+        title: spRange.Title,
+        device: spRange.DeviceName || '',
+        startIp: spRange.StartIP || '',
+        endIp: spRange.EndIP || '',
+        gateway: spRange.Gateway || '',
+        subnetMask: spRange.SubnetMask || '',
+        description: spRange.Description || '',
+    };
+};
+
+export const deleteIpRange = async (id: string): Promise<void> => {
+    await deleteListItem(sharePointConfig.listNames.ipRanges, id);
+    // Note: Associated IP Details should be handled (warn user or cascade delete)
+    // For now, we leave them as orphaned or assume manual cleanup
+};
+
+export const getIpDetails = async (rangeId?: string): Promise<IpDetail[]> => {
+    try {
+        const spDetails = await getListItems<SharePointIpDetail>(sharePointConfig.listNames.ipDetails);
+        const details = spDetails.map(spDetail => ({
+            id: spDetail.id,
+            ipAddress: spDetail.Title,
+            rangeId: spDetail.RangeId || '',
+            department: spDetail.Department || '',
+            user: spDetail.UserName || '',
+            usage: spDetail.Usage || '',
+            status: (spDetail.Status as '사용중' | '사용가능') || '사용가능',
+        }));
+
+        if (rangeId) {
+            return details.filter(d => d.rangeId === rangeId);
+        }
+        return details;
+    } catch (error) {
+        console.error('Error getting IP details:', error);
+        return [];
+    }
+};
+
+export const updateIpDetail = async (detail: Omit<IpDetail, 'id'> & { id?: string }): Promise<void> => {
+    // Check if it exists by IP Address and RangeId if ID is not provided
+    // However, simplest way for UI is to pass ID if it exists.
+
+    // If ID exists, update. If not, create.
+    if (detail.id) {
+        const data: any = {};
+        if (detail.department !== undefined) data.Department = detail.department;
+        if (detail.user !== undefined) data.UserName = detail.user;
+        if (detail.usage !== undefined) data.Usage = detail.usage;
+        if (detail.status !== undefined) data.Status = detail.status;
+
+        await updateListItem(sharePointConfig.listNames.ipDetails, detail.id, data);
+    } else {
+        // Create new
+        const data: any = {
+            Title: detail.ipAddress,
+            RangeId: detail.rangeId,
+            Department: detail.department || '',
+            UserName: detail.user || '',
+            Usage: detail.usage || '',
+            Status: detail.status || '사용배정',
+        };
+        await createListItem<SharePointIpDetail>(sharePointConfig.listNames.ipDetails, data);
+    }
+};
+
+// IP Helper: Generate list of IPs between two IP addresses
+export const generateIpListInRange = (startIp: string, endIp: string): string[] => {
+    const ipToLong = (ip: string) => {
+        return ip.split('.').reduce((acc, octet) => (acc << 8) + parseInt(octet, 10), 0) >>> 0;
+    };
+
+    const longToIp = (long: number) => {
+        return [
+            (long >>> 24) & 255,
+            (long >>> 16) & 255,
+            (long >>> 8) & 255,
+            long & 255
+        ].join('.');
+    };
+
+    const start = ipToLong(startIp);
+    const end = ipToLong(endIp);
+    const ips: string[] = [];
+
+    for (let i = start; i <= end; i++) {
+        ips.push(longToIp(i));
+    }
+    return ips;
 };

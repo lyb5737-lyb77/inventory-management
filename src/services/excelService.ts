@@ -76,3 +76,40 @@ export const exportRentalExcel = (rentals: Rental[]) => {
     const dateString = date.toISOString().slice(0, 10).replace(/-/g, '');
     XLSX.writeFile(workbook, `임대현황_${dateString}.xlsx`);
 };
+
+// IP 자산 엑셀 업로드
+export interface IpExcelItem {
+    ipAddress: string;
+    department: string;
+    user: string;
+    usage: string;
+}
+
+export const readIpInventoryExcel = (file: File): Promise<IpExcelItem[]> => {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const data = e.target?.result;
+                const workbook = XLSX.read(data, { type: 'binary' });
+                const sheetName = workbook.SheetNames[0];
+                const sheet = workbook.Sheets[sheetName];
+
+                const jsonData = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+
+                const items: IpExcelItem[] = jsonData.map((row: any) => ({
+                    ipAddress: (row['IP주소'] || row['IP'] || row['Title'] || '').toString().trim(),
+                    department: (row['사용부서'] || row['부서'] || row['Department'] || '').toString().trim(),
+                    user: (row['사용자'] || row['UserName'] || '').toString().trim(),
+                    usage: (row['용도'] || row['Usage'] || '').toString().trim(),
+                })).filter(item => item.ipAddress); // IP가 있는 행만 필터링
+
+                resolve(items);
+            } catch (error) {
+                reject(error);
+            }
+        };
+        reader.onerror = (error) => reject(error);
+        reader.readAsBinaryString(file);
+    });
+};

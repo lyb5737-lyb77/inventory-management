@@ -70,3 +70,26 @@ export interface Rental {
     contractEndDate: string; // 계약종료일
     remarks: string; // 비고
 }
+
+// IP 대역 (IpRange) 인터페이스
+export interface IpRange {
+    id: string;
+    title: string;      // 대역명
+    device: string;     // 장비명 (A, B, C)
+    startIp: string;    // 시작 IP
+    endIp: string;      // 종료 IP
+    gateway?: string;   // 게이트웨이
+    subnetMask?: string // 서브넷마스크
+    description?: string; // 비고
+}
+
+// IP 상세 (IpDetail) 인터페이스
+export interface IpDetail {
+    id: string;
+    ipAddress: string;  // IP 주소 (Title)
+    rangeId: string;    // IpRange ID
+    department: string; // 사용 부서
+    user: string;       // 사용자
+    usage: string;      // 용도
+    status: '사용중' | '사용가능'; // 상태
+}

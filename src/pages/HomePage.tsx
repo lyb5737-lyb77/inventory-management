@@ -128,6 +128,23 @@ export default function HomePage() {
                         <p className="text-gray-300 text-lg">임대 현황 및 계약 관리</p>
                         <p className="text-gray-400 text-sm mt-2">임대 현황, 계약 만료 알림, 엑셀 관리</p>
                     </div>
+
+                    {/* IP 자산 관리 페이지 카드 */}
+                    <div
+                        onClick={() => navigate('/ip-management')}
+                        className="bg-white/10 backdrop-blur-lg rounded-2xl p-8 border border-white/20 cursor-pointer transform transition hover:scale-105 hover:bg-white/15 shadow-2xl"
+                    >
+                        <div className="flex items-center gap-4 mb-4">
+                            <div className="bg-cyan-500 p-3 rounded-lg">
+                                <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                                </svg>
+                            </div>
+                            <h2 className="text-3xl font-bold text-white">IP 자산 관리</h2>
+                        </div>
+                        <p className="text-gray-300 text-lg">IP 대역 및 사용 현황 관리</p>
+                        <p className="text-gray-400 text-sm mt-2">IP 할당, 사용자 검색, 대역 관리</p>
+                    </div>
                 </div>
             </div>
 

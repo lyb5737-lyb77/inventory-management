@@ -7,6 +7,7 @@ import AdminPage from './pages/AdminPage';
 import InventoryPage from './pages/InventoryPage';
 import RentalPage from './pages/RentalPage';
 import OutboundRequestPage from './pages/OutboundRequestPage';
+import IpManagementPage from './pages/IpManagementPage';
 
 // Initialize MSAL
 // Initialize MSAL
@@ -23,6 +24,7 @@ function App() {
                         <Route path="/inventory" element={<InventoryPage />} />
                         <Route path="/rental" element={<RentalPage />} />
                         <Route path="/outbound-request" element={<OutboundRequestPage />} />
+                        <Route path="/ip-management" element={<IpManagementPage />} />
                     </Routes>
                 </AuthenticatedTemplate>
                 <UnauthenticatedTemplate>
