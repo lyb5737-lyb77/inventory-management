@@ -3,13 +3,17 @@
 @tailwind utilities;
 
 :root {
-  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  font-family: 'Inter', 'NotoSansHans', system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
 
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
+  color-scheme: light;
+  color: #111827;
+  background-color: #F0F4F8;
+  
+  /* Global CSS Variables if needed by some libs, but mostly using Tailwind utility classes */
+  --primary-color: #2563EB;
+  --bg-color: #F0F4F8;
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -19,10 +23,12 @@
 
 body {
   margin: 0;
-  display: flex;
-  place-items: center;
+  display: block; /* changed from flex/place-items:center to standard block layout */
   min-width: 320px;
   min-height: 100vh;
+  background-color: var(--bg-color);
+  background-image: radial-gradient(#E0E7FF 1px, transparent 1px);
+  background-size: 24px 24px;
 }
 
 #root {

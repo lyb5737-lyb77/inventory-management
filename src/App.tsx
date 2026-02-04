@@ -10,7 +10,6 @@ import OutboundRequestPage from './pages/OutboundRequestPage';
 import IpManagementPage from './pages/IpManagementPage';
 
 // Initialize MSAL
-// Initialize MSAL
 // await msalInstance.initialize(); // Moved to main.tsx
 
 function App() {
@@ -25,13 +24,13 @@ function App() {
                         <Route path="/rental" element={<RentalPage />} />
                         <Route path="/outbound-request" element={<OutboundRequestPage />} />
                         <Route path="/ip-management" element={<IpManagementPage />} />
-                    </Routes>
-                </AuthenticatedTemplate>
+                    </Routes >
+                </AuthenticatedTemplate >
                 <UnauthenticatedTemplate>
                     <LoginPage />
                 </UnauthenticatedTemplate>
-            </BrowserRouter>
-        </MsalProvider>
+            </BrowserRouter >
+        </MsalProvider >
     );
 }
 

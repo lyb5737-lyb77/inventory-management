@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>Team HR Evaluation System</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/remixicon/4.6.0/remixicon.min.css" rel="stylesheet">
+    <style>
+        /* CSS Reset & Basic Setup */
+        :root {
+            --primary-color: #2563EB; /* Modern Blue */
+            --primary-hover: #1D4ED8;
+            --primary-light: #EFF6FF;
+            --primary-border: #BFDBFE;
+            --text-main: #111827;
+            --text-secondary: #4B5563;
+            --text-tertiary: #9CA3AF;
+            --bg-color: #F3F4F6;
+            --card-bg: #FFFFFF;
+            --border-color: #E5E7EB;
+            --danger-color: #EF4444;
+            --success-color: #10B981;
+        }
+        
+        @font-face {
+            font-family: 'NotoSansHans';
+            src: url('https://assets-persist.lovart.ai/agent-static-assets/NotoSansHans-Regular.otf');
+            font-weight: 400;
+        }
+        @font-face {
+            font-family: 'NotoSansHans';
+            src: url('https://assets-persist.lovart.ai/agent-static-assets/NotoSansHans-Bold.otf');
+            font-weight: 700;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            width: 1920px;
+            min-height: 100vh;
+            font-family: 'NotoSansHans', sans-serif;
+            background-color: #F0F4F8;
+            background-image: radial-gradient(#E0E7FF 1px, transparent 1px);
+            background-size: 24px 24px;
+            color: var(--text-main);
+            box-sizing: border-box;
+            overflow-x: hidden;
+        }
+
+        .container {
+            width: 1400px; /* Constrain content width for better readability on 1920px screen, but centered */
+            margin: 0 auto;
+            padding: 60px 0;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        /* Header Section */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .page-title {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .title-icon {
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, #2563EB, #60A5FA);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 24px;
+            box-shadow: 0 4px 10px rgba(37, 99, 235, 0.3);
+        }
+
+        h1 {
+            font-size: 28px;
+            font-weight: 700;
+            color: #1F2937;
+            margin: 0;
+        }
+        
+        h1 span {
+            font-size: 16px;
+            color: var(--text-secondary);
+            font-weight: 400;
+            display: block;
+            margin-top: 4px;
+        }
+
+        /* Card Style */
+        .card {
+            background: var(--card-bg);
+            border-radius: 20px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
+            padding: 30px;
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 6px;
+            background: linear-gradient(90deg, #2563EB, #60A5FA);
+        }
+
+        /* Info Form */
+        .info-form {
+            display: flex;
+            gap: 40px;
+            align-items: center;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .form-label {
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .form-input-wrapper {
+            position: relative;
+            width: 300px;
+        }
+
+        .form-input-wrapper i {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-tertiary);
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 12px 16px 12px 40px;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            font-size: 15px;
+            transition: all 0.2s;
+            font-family: 'NotoSansHans', sans-serif;
+            background: #F9FAFB;
+            box-sizing: border-box;
+            color: var(--text-main);
+            font-weight: 500;
+        }
+
+        .form-input:focus {
+            background: white;
+            border-color: var(--primary-color);
+            outline: none;
+            box-shadow: 0 0 0 4px var(--primary-light);
+        }
+
+        /* Table Section */
+        .table-container {
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: center;
+            table-layout: fixed;
+        }
+
+        thead {
+            background-color: #F8FAFC;
+        }
+
+        th {
+            padding: 16px 8px;
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--text-secondary);
+            border-bottom: 1px solid var(--border-color);
+            border-right: 1px solid var(--border-color);
+            vertical-align: middle;
+            line-height: 1.4;
+            height: 70px;
+            background-color: #F9FAFB;
+        }
+        
+        th span.num-badge {
+            display: inline-block;
+            background: #DBEAFE;
+            color: #1E40AF;
+            width: 20px;
+            height: 20px;
+            line-height: 20px;
+            border-radius: 50%;
+            font-size: 11px;
+            margin-bottom: 4px;
+        }
+
+        th:last-child {
+            border-right: none;
+        }
+
+        /* Column Widths */
+        th.col-name { width: 14%; }
+        th.col-cat { width: 8.5%; }
+        th.col-score { width: 8%; color: var(--primary-color); background-color: #EFF6FF; }
+        th.col-weight { width: 6%; }
+        th.col-action { width: 6%; }
+
+        td {
+            padding: 8px;
+            border-bottom: 1px solid var(--border-color);
+            border-right: 1px solid var(--border-color);
+            background: #fff;
+            vertical-align: middle;
+        }
+        
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        td:last-child {
+            border-right: none;
+        }
+
+        /* Inputs in Table */
+        .tbl-input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid transparent;
+            border-radius: 6px;
+            text-align: center;
+            font-size: 14px;
+            box-sizing: border-box;
+            font-family: 'NotoSansHans', sans-serif;
+            background: transparent;
+            transition: all 0.2s;
+        }
+        
+        .tbl-input:hover {
+            border-color: #E5E7EB;
+            background: #F9FAFB;
+        }
+        
+        .tbl-input.name-input {
+            text-align: left;
+            padding-left: 12px;
+            font-weight: 500;
+        }
+
+        .tbl-select {
+            width: 100%;
+            padding: 8px 4px;
+            border: 1px solid #E5E7EB;
+            border-radius: 6px;
+            text-align-last: center; /* For Chrome */
+            text-align: center;
+            font-size: 14px;
+            background-color: #fff;
+            cursor: pointer;
+            font-family: 'NotoSansHans', sans-serif;
+            color: var(--text-main);
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' width='16' height='16'%3E%3Cpath fill='none' d='M0 0h24v24H0z'/%3E%3Cpath d='M12 13.172l4.95-4.95 1.414 1.414L12 16 5.636 9.636 7.05 8.222z' fill='%239CA3AF'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 4px center;
+        }
+
+        .tbl-input:focus, .tbl-select:focus {
+            border-color: var(--primary-color);
+            background: white;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        .score-cell {
+            background-color: #F8FAFC;
+        }
+        
+        .score-cell input {
+            font-weight: 700;
+            color: var(--primary-color);
+            background: white;
+            border: 1px solid #E5E7EB;
+        }
+
+        /* Buttons */
+        .btn-group {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+            margin-top: 24px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 24px;
+            border-radius: 10px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+            font-family: 'NotoSansHans', sans-serif;
+            letter-spacing: 0.3px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #2563EB, #1D4ED8);
+            color: white;
+            box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 8px -1px rgba(37, 99, 235, 0.4);
+        }
+
+        .btn-secondary {
+            background-color: white;
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+        }
+
+        .btn-secondary:hover {
+            background-color: #F9FAFB;
+            border-color: #D1D5DB;
+            color: var(--text-main);
+        }
+        
+        .btn-tertiary {
+            background-color: #EEF2FF;
+            color: var(--primary-color);
+            border: 1px solid transparent;
+        }
+        
+        .btn-tertiary:hover {
+            background-color: #E0E7FF;
+        }
+
+        .icon-btn {
+            background: transparent;
+            border: none;
+            color: #9CA3AF;
+            cursor: pointer;
+            padding: 6px;
+            border-radius: 6px;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto;
+        }
+
+        .icon-btn:hover {
+            background-color: #FEF2F2;
+            color: var(--danger-color);
+        }
+
+        /* Footer Guidelines */
+        .footer-guide {
+            display: grid;
+            grid-template-columns: 1fr 300px;
+            gap: 24px;
+        }
+        
+        .guide-card {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            border: 1px solid #E5E7EB;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+        }
+
+        .guide-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: #111827;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .guide-title i {
+            color: var(--primary-color);
+        }
+
+        .guide-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+        }
+
+        .guide-item {
+            font-size: 14px;
+            color: var(--text-secondary);
+            line-height: 1.6;
+            background: #F9FAFB;
+            padding: 16px;
+            border-radius: 12px;
+        }
+        
+        .guide-item strong {
+            display: block;
+            margin-bottom: 6px;
+            color: #1F2937;
+            font-size: 14px;
+        }
+        
+        .rating-legend {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        
+        .rating-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 14px;
+            background: #F9FAFB;
+            border-radius: 8px;
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+        
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 24px;
+            height: 24px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 700;
+        }
+        
+        .badge.a { background: #DCFCE7; color: #15803D; }
+        .badge.b { background: #DBEAFE; color: #1E40AF; }
+        .badge.c { background: #FEF3C7; color: #B45309; }
+        .badge.d { background: #FEE2E2; color: #B91C1C; }
+
+        /* Row Specifics */
+        .row-tl {
+            background-color: #F0F9FF;
+        }
+        .row-tl td {
+            background-color: #F0F9FF;
+        }
+        
+        .avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: white;
+            border: 1px solid #BFDBFE;
+            color: #2563EB;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 11px;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+        
+        .name-cell-content {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <!-- Top Section -->
+        <header>
+            <div class="page-title">
+                <div class="title-icon"><i class="ri-user-star-line"></i></div>
+                <div>
+                    <h1>팀 인사 평가 시스템 <span>Team HR Evaluation System</span></h1>
+                </div>
+            </div>
+            
+            <div class="card" style="padding: 15px 24px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); border: 1px solid #E5E7EB; width: auto; margin: 0;">
+                <div class="info-form">
+                    <div class="form-group">
+                        <label class="form-label">팀명 (Team Name)</label>
+                        <div class="form-input-wrapper">
+                            <i class="ri-team-line"></i>
+                            <input type="text" class="form-input" placeholder="예: 디자인 2팀">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">평가 기간 (Period)</label>
+                        <div class="form-input-wrapper">
+                            <i class="ri-calendar-event-line"></i>
+                            <input type="text" class="form-input" placeholder="2024년 상반기">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Evaluation Content -->
+        <div class="card">
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th class="col-name">사번 / 이름</th>
+                            <th class="col-cat"><span class="num-badge">1</span><br>인간미<br>협조성·사생활</th>
+                            <th class="col-cat"><span class="num-badge">2</span><br>정보관리<br>표현력·BITMAN</th>
+                            <th class="col-cat"><span class="num-badge">3</span><br>Y이론의<br>모범자</th>
+                            <th class="col-cat"><span class="num-badge">4</span><br>부하육성<br>과 팀웍</th>
+                            <th class="col-cat"><span class="num-badge">5</span><br>업무처리<br>능력</th>
+                            <th class="col-cat"><span class="num-badge">6</span><br>판단력<br>책임감</th>
+                            <th class="col-cat"><span class="num-badge">7</span><br>NET<br>관리능력</th>
+                            <th class="col-cat"><span class="num-badge">8</span><br>자질<br>향상</th>
+                            <th class="col-score">총점<br><span style="font-size:11px; font-weight:400; opacity:0.8">(40~90)</span></th>
+                            <th class="col-weight">가중치<br><span style="font-size:11px; font-weight:400; opacity:0.6">(%)</span></th>
+                            <th class="col-action">관리</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Row 1 (Team Leader) -->
+                        <tr class="row-tl">
+                            <td>
+                                <div class="name-cell-content">
+                                    <div class="avatar">TL</div>
+                                    <input type="text" class="tbl-input name-input" value="김민준 팀장 (본인)" readonly style="border:none; background:transparent;">
+                                </div>
+                            </td>
+                            <td><select class="tbl-select"><option>A</option><option selected>B</option><option>C</option><option>D</option></select></td>
+                            <td><select class="tbl-select"><option selected>A</option><option>B</option><option>C</option><option>D</option></select></td>
+                            <td><select class="tbl-select"><option>A</option><option selected>B</option><option>C</option><option>D</option></select></td>
+                            <td><select class="tbl-select"><option>A</option><option>B</option><option selected>A</option><option>D</option></select></td>
+                            <td><select class="tbl-select"><option selected>A</option><option>B</option><option>C</option><option>D</option></select></td>
+                            <td><select class="tbl-select"><option>A</option><option selected>A</option><option>C</option><option>D</option></select></td>
+                            <td><select class="tbl-select"><option>A</option><option>B</option><option>C</option><option>D</option></select></td>
+                            <td><select class="tbl-select"><option selected>A</option><option>B</option><option>C</option><option>D</option></select></td>
+                            <td class="score-cell"><input type="number" class="tbl-input" value="88" min="40" max="90"></td>
+                            <td><input type="number" class="tbl-input" value="10"></td>
+                            <td><span style="font-size:18px; color:#BFDBFE;"><i class="ri-shield-user-line"></i></span></td>
+                        </tr>
+                        
+                        <!-- Row 2 -->
+                        <tr>
+                            <td>
+                                <div class="name-cell-content">
+                                    <div class="avatar" style="background:#F3F4F6; border-color:#E5E7EB; color:#6B7280;">01</div>
+                                    <input type="text" class="tbl-input name-input" placeholder="이름 입력">
+                                </div>
+                            </td>
+                            <td><select class="tbl-select"><option value="" disabled selected>-</option><option>A</option><option>B</option><option>C</option><option>D</option></select></td>
+                            <td><select class="tbl-select"><option value="" disabled selected>-</option><option>A</option><option>B</option><option>C</option><option>D</option></select></td>
+                            <td><select class="tbl-select"><option value="" disabled selected>-</option><option>A</option><option>B</option><option>C</option><option>D</option></select></td>
+                            <td><select class="tbl-select"><option value="" disabled selected>-</option><option>A</option><option>B</option><option>C</option><option>D</option></select></td>
+                            <td><select class="tbl-select"><option value="" disabled selected>-</option><option>A</option><option>B</option><option>C</option><option>D</option></select></td>
+                            <td><select class="tbl-select"><option value="" disabled selected>-</option><option>A</option><option>B</option><option>C</option><option>D</option></select></td>
+                            <td><select class="tbl-select"><option value="" disabled selected>-</option><option>A</option><option>B</option><option>C</option><option>D</option></select></td>
+                            <td><select class="tbl-select"><option value="" disabled selected>-</option><option>A</option><option>B</option><option>C</option><option>D</option></select></td>
+                            <td class="score-cell"><input type="number" class="tbl-input" placeholder="-" min="40" max="90"></td>
+                            <td><input type="number" class="tbl-input" value="10"></td>
+                            <td><button class="icon-btn"><i class="ri-delete-bin-line"></i></button></td>
+                        </tr>
+
+                        <!-- Row 3 -->
+                        <tr>
+                            <td>
+                                <div class="name-cell-content">
+                                    <div class="avatar" style="background:#F3F4F6; border-color:#E5E7EB; color:#6B7280;">02</div>
+                                    <input type="text" class="tbl-input name-input" placeholder="이름 입력">
+                                </div>
+                            </td>
+                            <td><select class="tbl-select"><option value="" disabled selected>-</option><option>A</option><option>B</option><option>C</option><option>D</option></select></td>
+                            <td><select class="tbl-select"><option value="" disabled selected>-</option><option>A</option><option>B</option><option>C</option><option>D</option></select></td>
+                            <td><select class="tbl-select"><option value="" disabled selected>-</option><option>A</option><option>B</option><option>C</option><option>D</option></select></td>
+                            <td><select class="tbl-select"><option value="" disabled selected>-</option><option>A</option><option>B</option><option>C</option><option>D</option></select></td>
+                            <td><select class="tbl-select"><option value="" disabled selected>-</option><option>A</option><option>B</option><option>C</option><option>D</option></select></td>
+                            <td><select class="tbl-select"><option value="" disabled selected>-</option><option>A</option><option>B</option><option>C</option><option>D</option></select></td>
+                            <td><select class="tbl-select"><option value="" disabled selected>-</option><option>A</option><option>B</option><option>C</option><option>D</option></select></td>
+                            <td><select class="tbl-select"><option value="" disabled selected>-</option><option>A</option><option>B</option><option>C</option><option>D</option></select></td>
+                            <td class="score-cell"><input type="number" class="tbl-input" placeholder="-" min="40" max="90"></td>
+                            <td><input type="number" class="tbl-input" value="10"></td>
+                            <td><button class="icon-btn"><i class="ri-delete-bin-line"></i></button></td>
+                        </tr>
+
+                        <!-- Row 4 -->
+                        <tr>
+                            <td>
+                                <div class="name-cell-content">
+                                    <div class="avatar" style="background:#F3F4F6; border-color:#E5E7EB; color:#6B7280;">03</div>
+                                    <input type="text" class="tbl-input name-input" placeholder="이름 입력">
+                                </div>
+                            </td>
+                            <td><select class="tbl-select"><option value="" disabled selected>-</option><option>A</option><option>B</option><option>C</option><option>D</option></select></td>
+                            <td><select class="tbl-select"><option value="" disabled selected>-</option><option>A</option><option>B</option><option>C</option><option>D</option></select></td>
+                            <td><select class="tbl-select"><option value="" disabled selected>-</option><option>A</option><option>B</option><option>C</option><option>D</option></select></td>
+                            <td><select class="tbl-select"><option value="" disabled selected>-</option><option>A</option><option>B</option><option>C</option><option>D</option></select></td>
+                            <td><select class="tbl-select"><option value="" disabled selected>-</option><option>A</option><option>B</option><option>C</option><option>D</option></select></td>
+                            <td><select class="tbl-select"><option value="" disabled selected>-</option><option>A</option><option>B</option><option>C</option><option>D</option></select></td>
+                            <td><select class="tbl-select"><option value="" disabled selected>-</option><option>A</option><option>B</option><option>C</option><option>D</option></select></td>
+                            <td><select class="tbl-select"><option value="" disabled selected>-</option><option>A</option><option>B</option><option>C</option><option>D</option></select></td>
+                            <td class="score-cell"><input type="number" class="tbl-input" placeholder="-" min="40" max="90"></td>
+                            <td><input type="number" class="tbl-input" value="10"></td>
+                            <td><button class="icon-btn"><i class="ri-delete-bin-line"></i></button></td>
+                        </tr>
+                        
+                        <!-- Row 5 -->
+                        <tr>
+                            <td>
+                                <div class="name-cell-content">
+                                    <div class="avatar" style="background:#F3F4F6; border-color:#E5E7EB; color:#6B7280;">04</div>
+                                    <input type="text" class="tbl-input name-input" placeholder="이름 입력">
+                                </div>
+                            </td>
+                            <td><select class="tbl-select"><option value="" disabled selected>-</option><option>A</option><option>B</option><option>C</option><option>D</option></select></td>
+                            <td><select class="tbl-select"><option value="" disabled selected>-</option><option>A</option><option>B</option><option>C</option><option>D</option></select></td>
+                            <td><select class="tbl-select"><option value="" disabled selected>-</option><option>A</option><option>B</option><option>C</option><option>D</option></select></td>
+                            <td><select class="tbl-select"><option value="" disabled selected>-</option><option>A</option><option>B</option><option>C</option><option>D</option></select></td>
+                            <td><select class="tbl-select"><option value="" disabled selected>-</option><option>A</option><option>B</option><option>C</option><option>D</option></select></td>
+                            <td><select class="tbl-select"><option value="" disabled selected>-</option><option>A</option><option>B</option><option>C</option><option>D</option></select></td>
+                            <td><select class="tbl-select"><option value="" disabled selected>-</option><option>A</option><option>B</option><option>C</option><option>D</option></select></td>
+                            <td><select class="tbl-select"><option value="" disabled selected>-</option><option>A</option><option>B</option><option>C</option><option>D</option></select></td>
+                            <td class="score-cell"><input type="number" class="tbl-input" placeholder="-" min="40" max="90"></td>
+                            <td><input type="number" class="tbl-input" value="10"></td>
+                            <td><button class="icon-btn"><i class="ri-delete-bin-line"></i></button></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="btn-group">
+                <button class="btn btn-secondary"><i class="ri-add-line"></i> 팀원 추가</button>
+                <button class="btn btn-tertiary"><i class="ri-calculator-line"></i> 평균 계산</button>
+                <button class="btn btn-primary"><i class="ri-check-double-line"></i> 평가 제출</button>
+            </div>
+        </div>
+
+        <!-- Footer Guidelines -->
+        <div class="footer-guide">
+            <div class="guide-card">
+                <div class="guide-title"><i class="ri-file-list-3-line"></i> 평가 가이드라인 (Guidelines)</div>
+                <div class="guide-grid">
+                    <div class="guide-item">
+                        <strong>공정성 유지 (Fairness)</strong>
+                        개인적 감정을 배제하고 객관적인 성과에 기반하여 평가하십시오.
+                    </div>
+                    <div class="guide-item">
+                        <strong>점수 범위 (Score Range)</strong>
+                        총점은 반드시 40점에서 90점 사이로 입력해야 유효합니다.
+                    </div>
+                    <div class="guide-item">
+                        <strong>평가 기준 (Criteria)</strong>
+                        각 항목별 정의된 평가 기준을 명확히 이해하고 적용하십시오.
+                    </div>
+                    <div class="guide-item">
+                        <strong>피드백 (Feedback)</strong>
+                        평가 결과는 팀원의 성장을 위한 피드백 자료로 활용됩니다.
+                    </div>
+                </div>
+            </div>
+
+            <div class="guide-card" style="display: flex; flex-direction: column; justify-content: center;">
+                <div class="guide-title"><i class="ri-star-smile-line"></i> 평가 등급 (Rating)</div>
+                <div class="rating-legend">
+                    <div class="rating-item"><span class="badge a">A</span> <span>탁월 (Excellent)</span></div>
+                    <div class="rating-item"><span class="badge b">B</span> <span>우수 (Good)</span></div>
+                    <div class="rating-item"><span class="badge c">C</span> <span>보통 (Average)</span></div>
+                    <div class="rating-item"><span class="badge d">D</span> <span>미흡 (Poor)</span></div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+</body>
+</html>
