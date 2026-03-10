@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import Layout from '../components/Layout';
 import { Equipment, ProductGroup, EquipmentLog } from '../types';
 import { getEquipments, addEquipment, updateEquipment, deleteEquipment, getProductGroups, getEquipmentLogs, addEquipmentLog } from '../storage';
@@ -39,9 +40,39 @@ export default function EquipmentPage() {
     // 이력 데이터 상태
     const [logs, setLogs] = useState<EquipmentLog[]>([]);
 
+    const location = useLocation();
+
     useEffect(() => {
         loadInitialData();
     }, []);
+
+    // 타 페이지에서 전달된 수정 요청(openEditModalFor) 감지 및 모달 자동 실행
+    useEffect(() => {
+        if (equipments.length > 0 && location.state && location.state.openEditModalFor) {
+            const targetId = location.state.openEditModalFor;
+            const targetEq = equipments.find(eq => eq.id === targetId);
+
+            if (targetEq && !isModalOpen) {
+                setEditingItem(targetEq);
+                setFormData({
+                    name: targetEq.name,
+                    group: targetEq.group,
+                    managementNumber: targetEq.managementNumber,
+                    serialNumber: targetEq.serialNumber,
+                    userName: targetEq.userName,
+                    purchaseDate: targetEq.purchaseDate,
+                    price: targetEq.price,
+                    vendor: targetEq.vendor,
+                    status: targetEq.status,
+                    remarks: targetEq.remarks
+                });
+                setIsModalOpen(true);
+
+                // 모달을 한 번 띄운 후에는 state를 지워서 무한반복 방지
+                window.history.replaceState({}, document.title);
+            }
+        }
+    }, [equipments, location.state, isModalOpen]);
 
     const loadInitialData = async () => {
         setLoading(true);
