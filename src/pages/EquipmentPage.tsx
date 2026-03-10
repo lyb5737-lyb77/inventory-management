@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useState, useEffect, useRef } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import Layout from '../components/Layout';
 import { Equipment, ProductGroup, EquipmentLog } from '../types';
 import { getEquipments, addEquipment, updateEquipment, deleteEquipment, getProductGroups, getEquipmentLogs, addEquipmentLog } from '../storage';
@@ -41,6 +41,8 @@ export default function EquipmentPage() {
     const [logs, setLogs] = useState<EquipmentLog[]>([]);
 
     const location = useLocation();
+    const navigate = useNavigate();
+    const editFromViewerProcessed = useRef(false);
 
     useEffect(() => {
         loadInitialData();
@@ -48,11 +50,17 @@ export default function EquipmentPage() {
 
     // 타 페이지에서 전달된 수정 요청(openEditModalFor) 감지 및 모달 자동 실행
     useEffect(() => {
-        if (equipments.length > 0 && location.state && location.state.openEditModalFor) {
+        if (
+            equipments.length > 0 &&
+            location.state &&
+            location.state.openEditModalFor &&
+            !editFromViewerProcessed.current
+        ) {
             const targetId = location.state.openEditModalFor;
             const targetEq = equipments.find(eq => eq.id === targetId);
 
-            if (targetEq && !isModalOpen) {
+            if (targetEq) {
+                editFromViewerProcessed.current = true;
                 setEditingItem(targetEq);
                 setFormData({
                     name: targetEq.name,
@@ -68,11 +76,11 @@ export default function EquipmentPage() {
                 });
                 setIsModalOpen(true);
 
-                // 모달을 한 번 띄운 후에는 state를 지워서 무한반복 방지
-                window.history.replaceState({}, document.title);
+                // React Router의 state를 깔끔하게 제거
+                navigate('/equipment', { replace: true, state: {} });
             }
         }
-    }, [equipments, location.state, isModalOpen]);
+    }, [equipments, location.state]);
 
     const loadInitialData = async () => {
         setLoading(true);
