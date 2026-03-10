@@ -667,7 +667,7 @@ export default function EquipmentPage() {
                                         <div className="absolute bottom-4 right-4 w-4 h-4 border-b-2 border-r-2 border-indigo-500"></div>
 
                                         <QRCodeCanvas
-                                            value={`${window.location.origin}${import.meta.env.BASE_URL}equipment/viewer/${selectedEquipment.id}`}
+                                            value={`${window.location.origin}${import.meta.env.BASE_URL}#/equipment/viewer/${selectedEquipment.id}`}
                                             size={240}
                                             level="H"
                                             includeMargin={false}

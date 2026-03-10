@@ -1,5 +1,5 @@
 import { MsalProvider, AuthenticatedTemplate, UnauthenticatedTemplate } from '@azure/msal-react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { HashRouter, Routes, Route } from 'react-router-dom';
 import { msalInstance } from './authConfig';
 import LoginPage from './pages/LoginPage';
 import HomePage from './pages/HomePage';
@@ -17,7 +17,7 @@ import EquipmentViewerPage from './pages/EquipmentViewerPage';
 function App() {
     return (
         <MsalProvider instance={msalInstance}>
-            <BrowserRouter basename={import.meta.env.BASE_URL}>
+            <HashRouter>
                 <AuthenticatedTemplate>
                     <Routes>
                         <Route path="/" element={<HomePage />} />
@@ -33,7 +33,7 @@ function App() {
                 <UnauthenticatedTemplate>
                     <LoginPage />
                 </UnauthenticatedTemplate>
-            </BrowserRouter >
+            </HashRouter>
         </MsalProvider >
     );
 }
