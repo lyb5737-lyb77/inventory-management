@@ -30,6 +30,8 @@ export const sharePointConfig = {
         customers: 'Customers',
         ipRanges: 'IpRanges',
         ipDetails: 'IpDetails',
+        equipments: 'Equipments',
+        equipmentLogs: 'EquipmentLogs',
     },
 };
 

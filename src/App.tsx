@@ -8,6 +8,8 @@ import InventoryPage from './pages/InventoryPage';
 import RentalPage from './pages/RentalPage';
 import OutboundRequestPage from './pages/OutboundRequestPage';
 import IpManagementPage from './pages/IpManagementPage';
+import EquipmentPage from './pages/EquipmentPage';
+import EquipmentViewerPage from './pages/EquipmentViewerPage';
 
 // Initialize MSAL
 // await msalInstance.initialize(); // Moved to main.tsx
@@ -24,6 +26,8 @@ function App() {
                         <Route path="/rental" element={<RentalPage />} />
                         <Route path="/outbound-request" element={<OutboundRequestPage />} />
                         <Route path="/ip-management" element={<IpManagementPage />} />
+                        <Route path="/equipment" element={<EquipmentPage />} />
+                        <Route path="/equipment/viewer/:id" element={<EquipmentViewerPage />} />
                     </Routes >
                 </AuthenticatedTemplate >
                 <UnauthenticatedTemplate>

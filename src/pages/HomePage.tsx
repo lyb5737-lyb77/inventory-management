@@ -73,6 +73,14 @@ export default function HomePage() {
             icon: "ri-computer-line",
             colorClass: "from-cyan-500 to-cyan-600",
             path: "/ip-management"
+        },
+        {
+            title: "장비 관리",
+            desc: "업무용 장비 및 이력 관리",
+            subDesc: "장비 정보, 사용 이력, QR 코드",
+            icon: "ri-macbook-line",
+            colorClass: "from-indigo-500 to-indigo-600",
+            path: "/equipment"
         }
     ];
 

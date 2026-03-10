@@ -1,4 +1,4 @@
-import { Item, Transaction, ProductGroup, Rental, Warehouse, Customer, IpRange, IpDetail } from './types';
+import { Item, Transaction, ProductGroup, Rental, Warehouse, Customer, IpRange, IpDetail, Equipment, EquipmentLog } from './types';
 import { getListItems, createListItem, updateListItem, deleteListItem } from './services/sharepoint';
 import { sharePointConfig } from './authConfig';
 
@@ -67,6 +67,30 @@ interface SharePointRental {
     PaymentDate: string;
     ContractStartDate: string;
     ContractEndDate: string;
+    Remarks: string;
+}
+
+interface SharePointEquipment {
+    id: string;
+    Title: string;            // 장비명
+    ProductGroup: string;
+    ManagementNumber: string;
+    SerialNumber: string;
+    UserName: string;
+    PurchaseDate: string;
+    Price: string;
+    Vendor: string;
+    Status: string;           // 상태
+    Remarks: string;
+}
+
+interface SharePointEquipmentLog {
+    id: string;
+    Title: string;        // 장비 ID
+    ChangeType: string;
+    ChangeDate: string;
+    OldValue: string;
+    NewValue: string;
     Remarks: string;
 }
 
@@ -622,4 +646,125 @@ export const generateIpListInRange = (startIp: string, endIp: string): string[] 
         ips.push(longToIp(i));
     }
     return ips;
+};
+
+// 장비 관리
+export const getEquipments = async (): Promise<Equipment[]> => {
+    try {
+        const spEquipments = await getListItems<SharePointEquipment>(sharePointConfig.listNames.equipments);
+        return spEquipments.map(spEq => ({
+            id: spEq.id,
+            name: spEq.Title || '',
+            group: spEq.ProductGroup || '',
+            managementNumber: spEq.ManagementNumber || '',
+            serialNumber: spEq.SerialNumber || '',
+            userName: spEq.UserName || '',
+            purchaseDate: spEq.PurchaseDate || '',
+            price: spEq.Price || '',
+            vendor: spEq.Vendor || '',
+            status: spEq.Status || '정상',
+            remarks: spEq.Remarks || '',
+        }));
+    } catch (error) {
+        console.error('Error getting equipments:', error);
+        return [];
+    }
+};
+
+export const addEquipment = async (eq: Omit<Equipment, 'id'>): Promise<Equipment> => {
+    const data: any = {
+        Title: eq.name,
+        ProductGroup: eq.group,
+        ManagementNumber: eq.managementNumber,
+        SerialNumber: eq.serialNumber,
+        UserName: eq.userName,
+        PurchaseDate: eq.purchaseDate,
+        Price: eq.price,
+        Vendor: eq.vendor,
+        Status: eq.status,
+        Remarks: eq.remarks,
+    };
+
+    const spEq = await createListItem<SharePointEquipment>(sharePointConfig.listNames.equipments, data);
+
+    return {
+        id: spEq.id,
+        name: spEq.Title,
+        group: spEq.ProductGroup || '',
+        managementNumber: spEq.ManagementNumber || '',
+        serialNumber: spEq.SerialNumber || '',
+        userName: spEq.UserName || '',
+        purchaseDate: spEq.PurchaseDate || '',
+        price: spEq.Price || '',
+        vendor: spEq.Vendor || '',
+        status: spEq.Status || '정상',
+        remarks: spEq.Remarks || '',
+    };
+};
+
+export const updateEquipment = async (id: string, updates: Partial<Equipment>): Promise<void> => {
+    const spUpdates: any = {};
+    if (updates.name !== undefined) spUpdates.Title = updates.name;
+    if (updates.group !== undefined) spUpdates.ProductGroup = updates.group;
+    if (updates.managementNumber !== undefined) spUpdates.ManagementNumber = updates.managementNumber;
+    if (updates.serialNumber !== undefined) spUpdates.SerialNumber = updates.serialNumber;
+    if (updates.userName !== undefined) spUpdates.UserName = updates.userName;
+    if (updates.purchaseDate !== undefined) spUpdates.PurchaseDate = updates.purchaseDate;
+    if (updates.price !== undefined) spUpdates.Price = updates.price;
+    if (updates.vendor !== undefined) spUpdates.Vendor = updates.vendor;
+    if (updates.status !== undefined) spUpdates.Status = updates.status;
+    if (updates.remarks !== undefined) spUpdates.Remarks = updates.remarks;
+
+    await updateListItem(sharePointConfig.listNames.equipments, id, spUpdates);
+};
+
+export const deleteEquipment = async (id: string): Promise<void> => {
+    await deleteListItem(sharePointConfig.listNames.equipments, id);
+};
+
+// 장비 이력 관리
+export const getEquipmentLogs = async (equipmentId?: string): Promise<EquipmentLog[]> => {
+    try {
+        const spLogs = await getListItems<SharePointEquipmentLog>(sharePointConfig.listNames.equipmentLogs);
+        const logs = spLogs.map(spLog => ({
+            id: spLog.id,
+            equipmentId: spLog.Title, // 장비 ID가 Title 필드에 저장됨
+            changeType: spLog.ChangeType || '',
+            changeDate: spLog.ChangeDate || '',
+            oldValue: spLog.OldValue || '',
+            newValue: spLog.NewValue || '',
+            remarks: spLog.Remarks || '',
+        }));
+
+        if (equipmentId) {
+            return logs.filter(log => log.equipmentId === equipmentId);
+        }
+        return logs;
+    } catch (error) {
+        console.error('Error getting equipment logs:', error);
+        return [];
+    }
+};
+
+export const addEquipmentLog = async (log: Omit<EquipmentLog, 'id'>): Promise<EquipmentLog> => {
+    const data: any = {
+        Title: log.equipmentId, // Title에 장비 ID 저장
+        ChangeType: log.changeType,
+        ChangeDate: log.changeDate,
+        OldValue: log.oldValue,
+        NewValue: log.newValue,
+        Remarks: log.remarks,
+    };
+
+    const spLog = await createListItem<SharePointEquipmentLog>(sharePointConfig.listNames.equipmentLogs, data);
+
+    return {
+        id: spLog.id,
+        equipmentId: spLog.Title,
+        changeType: spLog.ChangeType || '',
+        changeDate: spLog.ChangeDate || '',
+        oldValue: spLog.OldValue || '',
+        newValue: spLog.NewValue || '',
+        remarks: spLog.Remarks || '',
+    };
 };

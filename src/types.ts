@@ -93,3 +93,29 @@ export interface IpDetail {
     usage: string;      // 용도
     status: '사용중' | '사용가능'; // 상태
 }
+
+// 장비 (Equipment) 인터페이스
+export interface Equipment {
+    id: string;
+    name: string;             // 장비명
+    group: string;            // 제품그룹
+    managementNumber: string; // 관리번호
+    serialNumber: string;     // 고유번호
+    userName: string;         // 사용자
+    purchaseDate: string;     // 구입일
+    price: string;            // 가격
+    vendor: string;           // 구입처
+    status: string;           // 상태 (정상, 수리중, 폐기 등)
+    remarks: string;          // 비고
+}
+
+// 장비 이력 로그 (EquipmentLog) 인터페이스
+export interface EquipmentLog {
+    id: string;
+    equipmentId: string;      // 장비(Equipments 리스트) ID
+    changeType: string;       // 변경분류 (사용자 변경, 상태 변경 등)
+    changeDate: string;       // 변경일시
+    oldValue: string;         // 이전값
+    newValue: string;         // 새값
+    remarks: string;          // 비고
+}
