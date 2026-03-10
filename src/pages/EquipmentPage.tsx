@@ -486,11 +486,11 @@ export default function EquipmentPage() {
 
             {/* 등록/수정 폼 모달 */}
             {isModalOpen && (
-                <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-                    <div className="bg-white rounded-3xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto custom-scrollbar">
-                        <div className="sticky top-0 bg-white px-8 py-6 border-b border-gray-100 flex justify-between items-center z-10 rounded-t-3xl">
-                            <h3 className="text-2xl font-bold text-gray-800 flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center text-xl">
+                <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-end md:items-center justify-center md:p-4 z-50">
+                    <div className="bg-white rounded-t-3xl md:rounded-3xl shadow-2xl max-w-2xl w-full max-h-[95vh] md:max-h-[90vh] overflow-y-auto custom-scrollbar">
+                        <div className="sticky top-0 bg-white px-5 md:px-8 py-4 md:py-6 border-b border-gray-100 flex justify-between items-center z-10 rounded-t-3xl">
+                            <h3 className="text-lg md:text-2xl font-bold text-gray-800 flex items-center gap-2 md:gap-3">
+                                <div className="w-8 h-8 md:w-10 md:h-10 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center text-lg md:text-xl">
                                     <i className="ri-macbook-line"></i>
                                 </div>
                                 {editingItem ? '장비 정보 수정' : '새 장비 등록'}
@@ -500,10 +500,10 @@ export default function EquipmentPage() {
                             </button>
                         </div>
 
-                        <form onSubmit={handleSubmit} className="p-8 space-y-6">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <form onSubmit={handleSubmit} className="p-5 md:p-8 space-y-4 md:space-y-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
                                 {/* Basic Info */}
-                                <div className="col-span-2">
+                                <div className="md:col-span-2">
                                     <label className="block text-sm font-semibold text-gray-700 mb-1.5">장비명 <span className="text-red-500">*</span></label>
                                     <input type="text" required value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                                         className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-medium"
@@ -573,7 +573,7 @@ export default function EquipmentPage() {
                                         placeholder="예: 2,500,000" />
                                 </div>
 
-                                <div className="col-span-2">
+                                <div className="md:col-span-2">
                                     <label className="block text-sm font-semibold text-gray-700 mb-1.5">비고 / 메모</label>
                                     <textarea value={formData.remarks} onChange={(e) => setFormData({ ...formData, remarks: e.target.value })} rows={3}
                                         className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all resize-none"
@@ -581,14 +581,14 @@ export default function EquipmentPage() {
                                 </div>
                             </div>
 
-                            <div className="flex gap-4 pt-6 border-t border-gray-100 mt-8">
+                            <div className="flex gap-3 md:gap-4 pt-4 md:pt-6 border-t border-gray-100 mt-4 md:mt-8 pb-2">
                                 <button type="button" onClick={() => setIsModalOpen(false)}
-                                    className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-4 rounded-xl shadow-sm transition-all border border-gray-200 text-lg">
+                                    className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-3 md:py-4 rounded-xl shadow-sm transition-all border border-gray-200 text-base md:text-lg">
                                     취소
                                 </button>
                                 <button type="submit"
-                                    className="flex-[2] bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 text-lg">
-                                    <i className="ri-save-3-line"></i> {editingItem ? '수정 내용 저장' : '장비 등록 완료'}
+                                    className="flex-[2] bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 md:py-4 rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 text-base md:text-lg">
+                                    <i className="ri-save-3-line"></i> {editingItem ? '수정 저장' : '등록 완료'}
                                 </button>
                             </div>
                         </form>
@@ -598,20 +598,20 @@ export default function EquipmentPage() {
 
             {/* 상세정보, QR코드, 이력관리 모달 */}
             {isDetailModalOpen && selectedEquipment && (
-                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-                    <div className="bg-white rounded-3xl shadow-2xl max-w-3xl w-full flex flex-col max-h-[90vh]">
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end md:items-center justify-center md:p-4 z-50">
+                    <div className="bg-white rounded-t-3xl md:rounded-3xl shadow-2xl max-w-3xl w-full flex flex-col max-h-[95vh] md:max-h-[90vh]">
                         {/* Header */}
-                        <div className="bg-indigo-600 px-6 py-5 rounded-t-3xl text-white flex justify-between items-center relative overflow-hidden shrink-0">
+                        <div className="bg-indigo-600 px-4 md:px-6 py-4 md:py-5 rounded-t-3xl text-white flex justify-between items-center relative overflow-hidden shrink-0">
                             <div className="absolute -right-10 leading-none -top-10 text-[10rem] opacity-10">
                                 <i className="ri-macbook-line"></i>
                             </div>
-                            <div className="relative z-10">
-                                <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-bold mb-2 bg-white/20 backdrop-blur-sm`}>
+                            <div className="relative z-10 min-w-0 flex-1 mr-2">
+                                <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-bold mb-1 md:mb-2 bg-white/20 backdrop-blur-sm`}>
                                     S/N: {selectedEquipment.serialNumber || '미상'}
                                 </span>
-                                <h3 className="text-2xl font-bold">{selectedEquipment.name}</h3>
+                                <h3 className="text-lg md:text-2xl font-bold truncate">{selectedEquipment.name}</h3>
                             </div>
-                            <button onClick={() => setIsDetailModalOpen(false)} className="text-white/80 hover:text-white w-10 h-10 rounded-full hover:bg-white/10 flex items-center justify-center relative z-10 transition-colors">
+                            <button onClick={() => setIsDetailModalOpen(false)} className="text-white/80 hover:text-white w-10 h-10 rounded-full hover:bg-white/10 flex items-center justify-center relative z-10 transition-colors shrink-0">
                                 <i className="ri-close-line text-2xl"></i>
                             </button>
                         </div>
@@ -639,24 +639,24 @@ export default function EquipmentPage() {
                         </div>
 
                         {/* Content */}
-                        <div className="p-8 overflow-y-auto custom-scrollbar flex-1 bg-gray-50/50 rounded-b-3xl">
+                        <div className="p-4 md:p-8 overflow-y-auto custom-scrollbar flex-1 bg-gray-50/50 rounded-b-3xl">
                             {detailTab === 'info' && (
-                                <div className="grid grid-cols-2 gap-y-6 gap-x-8">
-                                    <div className="col-span-2 md:col-span-1 bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4 md:gap-y-6 gap-x-4 md:gap-x-8">
+                                    <div className="bg-white p-4 md:p-5 rounded-2xl border border-gray-100 shadow-sm">
                                         <p className="text-xs text-gray-500 font-medium mb-1 uppercase tracking-wider">현재 상태</p>
-                                        <p className="font-bold text-lg text-gray-900 flex items-center gap-2">
+                                        <p className="font-bold text-base md:text-lg text-gray-900 flex items-center gap-2">
                                             <div className={`w-3 h-3 rounded-full ${selectedEquipment.status === '정상' ? 'bg-green-500' : selectedEquipment.status === '수리중' ? 'bg-yellow-500' : 'bg-red-500'}`}></div>
                                             {selectedEquipment.status}
                                         </p>
                                     </div>
-                                    <div className="col-span-2 md:col-span-1 bg-white p-5 rounded-2xl border border-gray-100 shadow-sm relative overflow-hidden">
-                                        <div className="absolute right-0 top-0 w-16 h-full bg-indigo-50 flex items-center justify-center">
-                                            <i className="ri-user-3-fill text-2xl text-indigo-200"></i>
+                                    <div className="bg-white p-4 md:p-5 rounded-2xl border border-gray-100 shadow-sm relative overflow-hidden">
+                                        <div className="absolute right-0 top-0 w-12 md:w-16 h-full bg-indigo-50 flex items-center justify-center">
+                                            <i className="ri-user-3-fill text-xl md:text-2xl text-indigo-200"></i>
                                         </div>
                                         <p className="text-xs text-gray-500 font-medium mb-1 uppercase tracking-wider">현재 사용자</p>
-                                        <p className="font-bold text-indigo-600 text-lg relative z-10">{selectedEquipment.userName || '미배정'}</p>
+                                        <p className="font-bold text-indigo-600 text-base md:text-lg relative z-10">{selectedEquipment.userName || '미배정'}</p>
                                     </div>
-                                    <div className="col-span-2 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm grid grid-cols-2 gap-6">
+                                    <div className="md:col-span-2 bg-white p-4 md:p-6 rounded-2xl border border-gray-100 shadow-sm grid grid-cols-2 gap-4 md:gap-6">
                                         <div>
                                             <p className="text-xs text-gray-500 font-medium mb-1">제품그룹</p>
                                             <p className="font-semibold text-gray-800">{selectedEquipment.group || '-'}</p>
@@ -677,7 +677,7 @@ export default function EquipmentPage() {
                                             <p className="text-xs text-gray-500 font-medium mb-1">구입처</p>
                                             <p className="font-semibold text-gray-800">{selectedEquipment.vendor || '-'}</p>
                                         </div>
-                                        <div className="col-span-2 pt-4 border-t border-gray-100 mt-2">
+                                        <div className="col-span-2 pt-3 md:pt-4 border-t border-gray-100 mt-1 md:mt-2">
                                             <p className="text-xs text-gray-500 font-medium mb-2">메모/특이사항</p>
                                             <p className="text-gray-700 bg-gray-50 p-4 rounded-xl leading-relaxed whitespace-pre-wrap">{selectedEquipment.remarks || '등록된 메모가 없습니다.'}</p>
                                         </div>
