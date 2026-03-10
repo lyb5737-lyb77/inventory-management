@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import Layout from '../components/Layout';
 import { Equipment, ProductGroup, EquipmentLog } from '../types';
 import { getEquipments, addEquipment, updateEquipment, deleteEquipment, getProductGroups, getEquipmentLogs, addEquipmentLog } from '../storage';
