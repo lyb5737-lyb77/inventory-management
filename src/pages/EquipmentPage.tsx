@@ -187,29 +187,46 @@ export default function EquipmentPage() {
                     });
                 }
 
+                console.log('[handleSubmit] 장비 업데이트 시작:', editingItem.id, formData);
                 await updateEquipment(editingItem.id, formData);
+                console.log('[handleSubmit] 장비 업데이트 완료');
 
-                // 로그 기록 저장
-                const changeDate = new Date().toISOString();
-                for (const change of changes) {
-                    await addEquipmentLog({
-                        equipmentId: editingItem.id,
-                        changeType: change.type,
-                        changeDate: changeDate,
-                        oldValue: change.old,
-                        newValue: change.new,
-                        remarks: '관리자 수정'
-                    });
+                // 로그 기록 저장 (실패해도 장비 저장은 유지)
+                if (changes.length > 0) {
+                    const changeDate = new Date().toISOString();
+                    for (const change of changes) {
+                        try {
+                            console.log('[handleSubmit] 이력 로그 기록 시작:', change);
+                            await addEquipmentLog({
+                                equipmentId: editingItem.id,
+                                changeType: change.type,
+                                changeDate: changeDate,
+                                oldValue: change.old,
+                                newValue: change.new,
+                                remarks: '관리자 수정'
+                            });
+                            console.log('[handleSubmit] 이력 로그 기록 완료:', change.type);
+                        } catch (logErr: any) {
+                            console.error('[handleSubmit] 이력 로그 기록 실패:', logErr);
+                            // 로그 기록 실패는 알림만 하고 장비 저장은 유지
+                            alert(`장비 정보는 저장되었으나, 이력 기록 중 오류가 발생했습니다.\n(${logErr.message || '알 수 없는 오류'})`);
+                        }
+                    }
                 }
             } else {
                 // 추가 로직
+                console.log('[handleSubmit] 장비 추가 시작:', formData);
                 await addEquipment(formData);
+                console.log('[handleSubmit] 장비 추가 완료');
             }
             setIsModalOpen(false);
             setEditingItem(null);
             setFormData(initialFormState);
             await loadInitialData();
         } catch (err: any) {
+            console.error('[handleSubmit] 저장 실패:', err);
+            // 모달 내부에서도 보이도록 alert 사용
+            alert(`저장 실패: ${err.message || '알 수 없는 오류가 발생했습니다.'}`);
             setError(err.message || '저장 실패');
         } finally {
             setLoading(false);
@@ -378,16 +395,17 @@ export default function EquipmentPage() {
                     </div>
                 </div>
 
-                <div className="flex gap-2 w-full md:w-auto flex-wrap md:flex-nowrap pb-2 md:pb-0 justify-end">
+                <div className="flex flex-col md:flex-row gap-2 w-full md:w-auto pb-2 md:pb-0 justify-end">
+                    {/* 모바일에서는 엑셀 관련 버튼 숨김 (hidden md:flex) */}
                     <button
                         onClick={handleDownloadExcel}
-                        className="bg-white border text-sm border-gray-200 text-gray-700 hover:bg-gray-50 flex-shrink-0 py-2.5 px-4 rounded-xl shadow-sm transition-all flex items-center gap-2"
+                        className="hidden md:flex bg-white border text-sm border-gray-200 text-gray-700 hover:bg-gray-50 flex-shrink-0 py-2.5 px-4 rounded-xl shadow-sm transition-all items-center gap-2"
                         title="현재 검색된 목록 다운로드"
                     >
                         <i className="ri-download-2-line"></i> 목록 다운로드
                     </button>
 
-                    <div className="flex gap-2 bg-green-50 rounded-xl p-1 border border-green-100">
+                    <div className="hidden md:flex gap-2 bg-green-50 rounded-xl p-1 border border-green-100">
                         <button
                             onClick={handleDownloadTemplate}
                             className="bg-white text-green-700 text-sm hover:bg-green-100 font-semibold flex-shrink-0 py-1.5 px-3 rounded-lg shadow-sm transition-all flex items-center gap-1"
@@ -401,13 +419,14 @@ export default function EquipmentPage() {
                         </label>
                     </div>
 
+                    {/* 수동 등록 버튼은 모바일에서 너비 100% (w-full md:w-auto) */}
                     <button
                         onClick={() => {
                             setEditingItem(null);
                             setFormData(initialFormState);
                             setIsModalOpen(true);
                         }}
-                        className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold flex-shrink-0 py-2.5 px-5 rounded-xl shadow-lg transition-all flex items-center gap-2"
+                        className="w-full md:w-auto justify-center bg-indigo-600 hover:bg-indigo-700 text-white font-semibold flex-shrink-0 py-2.5 px-5 rounded-xl shadow-lg transition-all flex items-center gap-2"
                     >
                         <i className="ri-add-line"></i> 수동 등록
                     </button>
