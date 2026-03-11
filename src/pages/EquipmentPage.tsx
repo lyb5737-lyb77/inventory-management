@@ -24,7 +24,7 @@ export default function EquipmentPage() {
         managementNumber: '',
         serialNumber: '',
         userName: '',
-        purchaseDate: '',
+        purchaseDate: new Date().toISOString().split('T')[0],
         price: '',
         vendor: '',
         status: '정상',
@@ -162,9 +162,48 @@ export default function EquipmentPage() {
         }
     };
 
+    // 자동 채번 (관리번호)
+    const handleGenerateManagementNumber = () => {
+        const dateStr = formData.purchaseDate || new Date().toISOString().split('T')[0];
+        const dateObj = new Date(dateStr);
+        const year = String(dateObj.getFullYear()).slice(-2);
+        const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+        const prefix = `BIT${year}${month}`;
+
+        // 현재 동일 접두사를 가진 장비들 필터링
+        const matchedEquipments = equipments.filter(eq => 
+            eq.managementNumber && eq.managementNumber.startsWith(prefix)
+        );
+
+        let nextSeq = 1;
+        if (matchedEquipments.length > 0) {
+            // 접두사 이후의 순번 3자리를 추출하여 최대값 찾기
+            const seqs = matchedEquipments.map(eq => {
+                const seqStr = eq.managementNumber.replace(prefix, '');
+                return parseInt(seqStr) || 0;
+            });
+            nextSeq = Math.max(...seqs) + 1;
+        }
+
+        const newManagementNumber = `${prefix}${String(nextSeq).padStart(3, '0')}`;
+        setFormData(prev => ({ ...prev, managementNumber: newManagementNumber }));
+    };
+
     // 폼 제출
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        // 중복 관리번호 검사
+        if (formData.managementNumber) {
+            const isDuplicate = equipments.some(
+                eq => eq.managementNumber === formData.managementNumber && eq.id !== editingItem?.id
+            );
+            if (isDuplicate) {
+                alert(`입력하신 관리번호 "${formData.managementNumber}"는 이미 존재하여 중복됩니다.\n자동 채번을 이용하거나 다른 번호를 입력해주세요.`);
+                return; // 제출 중단
+            }
+        }
+
         setLoading(true);
         setError(null);
 
@@ -560,10 +599,19 @@ export default function EquipmentPage() {
 
                                 {/* Tracking Info */}
                                 <div>
-                                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">관리번호</label>
+                                    <label className="block text-sm font-semibold text-gray-700 mb-1.5 flex justify-between">
+                                        관리번호
+                                        <button 
+                                            type="button" 
+                                            onClick={handleGenerateManagementNumber}
+                                            className="text-xs text-indigo-600 hover:text-indigo-800 font-bold bg-indigo-50 px-2 rounded"
+                                        >
+                                            자동 채번
+                                        </button>
+                                    </label>
                                     <input type="text" value={formData.managementNumber} onChange={(e) => setFormData({ ...formData, managementNumber: e.target.value })}
-                                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
-                                        placeholder="사내 관리 자산번호" />
+                                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-semibold"
+                                        placeholder="직접 입력 또는 자동 채번" />
                                 </div>
 
                                 <div>
@@ -582,7 +630,10 @@ export default function EquipmentPage() {
 
                                 {/* Purchase Info */}
                                 <div>
-                                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">구입일자</label>
+                                    <label className="block text-sm font-semibold text-gray-700 mb-1.5 flex justify-between">
+                                        구입일자
+                                        <span className="text-xs text-gray-400 font-normal self-end">자동 채번 기준일</span>
+                                    </label>
                                     <input type="date" value={formData.purchaseDate} onChange={(e) => setFormData({ ...formData, purchaseDate: e.target.value })}
                                         className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all" />
                                 </div>

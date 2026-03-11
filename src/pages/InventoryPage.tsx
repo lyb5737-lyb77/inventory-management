@@ -39,10 +39,9 @@ export default function InventoryPage() {
     // 검색 폼
     const [searchForm, setSearchForm] = useState(() => {
         const today = new Date();
-        const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
         const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
         return {
-            startDate: formatDate(firstDay),
+            startDate: formatDate(today),
             endDate: formatDate(lastDay),
         };
     });
