@@ -3,13 +3,14 @@ import Layout from '../components/Layout';
 import { Rental } from '../types';
 import { readRentalExcel, exportRentalExcel } from '../services/excelService';
 import { getRentals, addRental, updateRental } from '../storage';
-import { AVAILABLE_ROOMS, ROOM_AREA_MAP } from '../constants/roomData';
+import { ROOM_AREA_MAP } from '../constants/roomData';
 
 export default function RentalPage() {
     const [rentals, setRentals] = useState<Rental[]>([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [currentRental, setCurrentRental] = useState<Rental | null>(null);
     const [isEditMode, setIsEditMode] = useState(false);
+    const [sortOrder, setSortOrder] = useState<'default' | 'endDateAsc'>('default');
 
     useEffect(() => {
         loadRentals();
@@ -104,7 +105,7 @@ export default function RentalPage() {
             const { name, value } = e.target;
 
             if (name === 'ho') {
-                const area = ROOM_AREA_MAP[value] || '';
+                const area = ROOM_AREA_MAP[value] !== undefined ? ROOM_AREA_MAP[value] : currentRental.area;
                 setCurrentRental({ ...currentRental, ho: value, area });
             } else if (name === 'deposit' || name === 'monthlyRent' || name === 'maintenanceFee' || name === 'parkingFee') {
                 setCurrentRental({ ...currentRental, [name]: Number(value) || 0 });
@@ -114,25 +115,47 @@ export default function RentalPage() {
         }
     };
 
+    const sortedRentals = [...rentals].sort((a, b) => {
+        if (sortOrder === 'endDateAsc') {
+            if (!a.contractEndDate) return 1;
+            if (!b.contractEndDate) return -1;
+            return new Date(a.contractEndDate).getTime() - new Date(b.contractEndDate).getTime();
+        }
+        return 0; // default order
+    });
+
     return (
         <Layout title="임대 관리" showBackButton={true} maxWidth="max-w-[1800px]">
-            <div className="flex justify-end gap-3 mb-6">
-                <button
-                    onClick={handleAdd}
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-xl transition shadow-md flex items-center gap-2 font-bold"
-                >
-                    <i className="ri-add-line"></i> 신규 추가
-                </button>
-                <label className="bg-green-600 hover:bg-green-700 text-white px-6 py-2.5 rounded-xl cursor-pointer transition shadow-md flex items-center gap-2 font-bold">
-                    <i className="ri-file-excel-2-line"></i> 엑셀 업로드
-                    <input type="file" accept=".xlsx, .xls" onChange={handleFileUpload} className="hidden" />
-                </label>
-                <button
-                    onClick={handleExport}
-                    className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2.5 rounded-xl transition shadow-md flex items-center gap-2 font-bold"
-                >
-                    <i className="ri-download-line"></i> 엑셀 다운로드
-                </button>
+            <div className="flex justify-between items-center mb-6">
+                <div className="flex items-center gap-3">
+                    <span className="text-gray-700 font-bold whitespace-nowrap">정렬:</span>
+                    <select
+                        value={sortOrder}
+                        onChange={(e) => setSortOrder(e.target.value as any)}
+                        className="bg-white border border-gray-300 rounded-xl px-4 py-2.5 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 font-bold shadow-sm"
+                    >
+                        <option value="default">기본순</option>
+                        <option value="endDateAsc">계약종료일 임박순</option>
+                    </select>
+                </div>
+                <div className="flex justify-end gap-3">
+                    <button
+                        onClick={handleAdd}
+                        className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-xl transition shadow-md flex items-center gap-2 font-bold"
+                    >
+                        <i className="ri-add-line"></i> 신규 추가
+                    </button>
+                    <label className="bg-green-600 hover:bg-green-700 text-white px-6 py-2.5 rounded-xl cursor-pointer transition shadow-md flex items-center gap-2 font-bold">
+                        <i className="ri-file-excel-2-line"></i> 엑셀 업로드
+                        <input type="file" accept=".xlsx, .xls" onChange={handleFileUpload} className="hidden" />
+                    </label>
+                    <button
+                        onClick={handleExport}
+                        className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2.5 rounded-xl transition shadow-md flex items-center gap-2 font-bold"
+                    >
+                        <i className="ri-download-line"></i> 엑셀 다운로드
+                    </button>
+                </div>
             </div>
 
             {/* Table Card */}
@@ -159,14 +182,14 @@ export default function RentalPage() {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100 bg-white">
-                            {rentals.length === 0 ? (
+                            {sortedRentals.length === 0 ? (
                                 <tr>
                                     <td colSpan={15} className="px-6 py-12 text-center text-gray-400 text-lg">
                                         등록된 임대 내역이 없습니다.
                                     </td>
                                 </tr>
                             ) : (
-                                rentals.map((rental, index) => (
+                                sortedRentals.map((rental, index) => (
                                     <tr key={rental.id} className={`hover:bg-blue-50 transition ${index % 2 === 0 ? 'bg-gray-50/50' : ''}`}>
                                         <td className="px-3 py-3 text-center text-gray-900 font-bold">{rental.ho}</td>
                                         <td className="px-2 py-3 text-center text-gray-700 font-semibold truncate max-w-[120px]" title={rental.tenantName}>{rental.tenantName}</td>
@@ -177,7 +200,12 @@ export default function RentalPage() {
                                             {rental.contractStartDate} ~ {rental.contractEndDate}
                                         </td>
                                         <td className="px-2 py-3 text-center whitespace-nowrap">
-                                            <span className={`px-2 py-1 rounded-full text-xs font-bold ${rental.type === '직원' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
+                                            <span className={`px-2 py-1 rounded-full text-xs font-bold ${
+                                                rental.type === '직원' ? 'bg-green-100 text-green-700' :
+                                                rental.type === '비트빌' ? 'bg-purple-100 text-purple-700' :
+                                                rental.type === '기타' ? 'bg-gray-100 text-gray-700' :
+                                                'bg-yellow-100 text-yellow-700'
+                                            }`}>
                                                 {rental.type}
                                             </span>
                                         </td>
@@ -217,18 +245,15 @@ export default function RentalPage() {
                             <div className="grid grid-cols-2 gap-6">
                                 <div>
                                     <label className="block text-sm font-bold text-gray-700 mb-2">호실 *</label>
-                                    <select
+                                    <input
+                                        type="text"
                                         name="ho"
                                         value={currentRental.ho}
                                         onChange={handleChange}
                                         required
+                                        placeholder="호실을 입력하세요"
                                         className="w-full bg-gray-50 border border-gray-300 rounded-xl px-4 py-2.5 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    >
-                                        <option value="">선택하세요</option>
-                                        {AVAILABLE_ROOMS.map(room => (
-                                            <option key={room} value={room}>{room}</option>
-                                        ))}
-                                    </select>
+                                    />
                                 </div>
 
                                 <div>
@@ -237,8 +262,9 @@ export default function RentalPage() {
                                         type="text"
                                         name="area"
                                         value={currentRental.area}
-                                        readOnly
-                                        className="w-full bg-gray-100 border border-gray-300 rounded-xl px-4 py-2.5 text-gray-500 cursor-not-allowed"
+                                        onChange={handleChange}
+                                        placeholder="면적을 입력하세요"
+                                        className="w-full bg-gray-50 border border-gray-300 rounded-xl px-4 py-2.5 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
                                     />
                                 </div>
 
@@ -254,6 +280,8 @@ export default function RentalPage() {
                                         <option value="">선택하세요</option>
                                         <option value="직원">직원</option>
                                         <option value="일반인">일반인</option>
+                                        <option value="비트빌">비트빌</option>
+                                        <option value="기타">기타</option>
                                     </select>
                                 </div>
 
