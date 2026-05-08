@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import Layout from '../components/Layout';
 import { Item, Transaction, Warehouse } from '../types';
 import { getItems, addTransaction, getTransactionsByDateRange, getWarehouses } from '../storage';
+import * as XLSX from 'xlsx';
 
 export default function InventoryPage() {
     const [items, setItems] = useState<Item[]>([]);
@@ -95,8 +96,7 @@ export default function InventoryPage() {
         if (!item) return;
 
         if (item.quantity < outboundForm.quantity) {
-            alert('재고가 부족합니다.');
-            return;
+            alert('재고가 부족하여 마이너스 재고가 발생합니다.');
         }
 
         await addTransaction({
@@ -166,6 +166,41 @@ export default function InventoryPage() {
         setSelectedPeriod(null); // 수동 변경 시 라디오 버튼 선택 해제
     };
 
+    const handleDownloadStockExcel = () => {
+        const stockData = items
+            .filter(item => selectedWarehouse === '전체' || (item.warehouse || '비트본사') === selectedWarehouse)
+            .filter(item => item.quantity !== 0)
+            .map(item => ({
+                '품명': item.name,
+                '제품그룹': item.group,
+                '창고': item.warehouse || '비트본사',
+                '품번': item.partNumber,
+                '현재고': item.quantity,
+                '가격': item.price
+            }));
+
+        const ws = XLSX.utils.json_to_sheet(stockData);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "현재고현황");
+        XLSX.writeFile(wb, `현재고현황_${new Date().toISOString().split('T')[0]}.xlsx`);
+    };
+
+    const handleDownloadHistoryExcel = () => {
+        const historyData = searchResults.map(t => ({
+            '날짜': t.date,
+            '품명': t.itemName,
+            '구분': t.type === 'IN' ? '입고' : '출고',
+            '수량': t.quantity,
+            '출고처': t.target || '-',
+            '비고': t.remarks
+        }));
+
+        const ws = XLSX.utils.json_to_sheet(historyData);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "입출고조회");
+        XLSX.writeFile(wb, `입출고내역_${searchForm.startDate}_${searchForm.endDate}.xlsx`);
+    };
+
     const handlePrint = () => {
         window.print();
     };
@@ -207,7 +242,16 @@ export default function InventoryPage() {
             {activeTab === 'stock' && (
                 <div className="bg-white rounded-2xl shadow-md border border-gray-200 overflow-hidden">
                     <div className="p-6 bg-gray-50 border-b border-gray-200 flex justify-between items-center print:bg-white print:border-none">
-                        <h2 className="text-xl font-bold text-gray-800">현재고 현황</h2>
+                        <div className="flex items-center gap-4">
+                            <h2 className="text-xl font-bold text-gray-800">현재고 현황</h2>
+                            <button
+                                onClick={handleDownloadStockExcel}
+                                className="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded text-sm transition shadow flex items-center gap-1 print:hidden"
+                            >
+                                <i className="ri-file-excel-2-line"></i>
+                                엑셀 다운로드
+                            </button>
+                        </div>
                         <select
                             value={selectedWarehouse}
                             onChange={(e) => setSelectedWarehouse(e.target.value)}
@@ -243,6 +287,7 @@ export default function InventoryPage() {
                                 ) : (
                                     items
                                         .filter(item => selectedWarehouse === '전체' || (item.warehouse || '비트본사') === selectedWarehouse)
+                                        .filter(item => item.quantity !== 0)
                                         .map((item) => (
                                             <tr key={item.id} className="hover:bg-blue-50 transition">
                                                 <td className="px-6 py-4 whitespace-nowrap text-gray-900 font-medium">{item.name}</td>
@@ -554,8 +599,15 @@ export default function InventoryPage() {
 
                     {searchResults.length > 0 && (
                         <div className="bg-white rounded-2xl shadow-md border border-gray-200 overflow-hidden">
-                            <div className="p-6 bg-gray-50 border-b border-gray-200">
+                            <div className="p-6 bg-gray-50 border-b border-gray-200 flex justify-between items-center">
                                 <h3 className="text-xl font-bold text-gray-800">검색 결과 ({searchResults.length}건)</h3>
+                                <button
+                                    onClick={handleDownloadHistoryExcel}
+                                    className="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded text-sm transition shadow flex items-center gap-1 print:hidden"
+                                >
+                                    <i className="ri-file-excel-2-line"></i>
+                                    엑셀 다운로드
+                                </button>
                             </div>
                             <div className="overflow-x-auto">
                                 <table className="min-w-full divide-y divide-gray-200">
