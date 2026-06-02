@@ -1,6 +1,7 @@
 import { MsalProvider, AuthenticatedTemplate, UnauthenticatedTemplate } from '@azure/msal-react';
 import { HashRouter, Routes, Route } from 'react-router-dom';
 import { msalInstance } from './authConfig';
+import { AuthProvider } from './auth/AuthContext';
 import LoginPage from './pages/LoginPage';
 import HomePage from './pages/HomePage';
 import AdminPage from './pages/AdminPage';
@@ -19,16 +20,18 @@ function App() {
         <MsalProvider instance={msalInstance}>
             <HashRouter>
                 <AuthenticatedTemplate>
-                    <Routes>
-                        <Route path="/" element={<HomePage />} />
-                        <Route path="/admin" element={<AdminPage />} />
-                        <Route path="/inventory" element={<InventoryPage />} />
-                        <Route path="/rental" element={<RentalPage />} />
-                        <Route path="/outbound-request" element={<OutboundRequestPage />} />
-                        <Route path="/ip-management" element={<IpManagementPage />} />
-                        <Route path="/equipment" element={<EquipmentPage />} />
-                        <Route path="/equipment/viewer/:id" element={<EquipmentViewerPage />} />
-                    </Routes >
+                    <AuthProvider>
+                        <Routes>
+                            <Route path="/" element={<HomePage />} />
+                            <Route path="/admin" element={<AdminPage />} />
+                            <Route path="/inventory" element={<InventoryPage />} />
+                            <Route path="/rental" element={<RentalPage />} />
+                            <Route path="/outbound-request" element={<OutboundRequestPage />} />
+                            <Route path="/ip-management" element={<IpManagementPage />} />
+                            <Route path="/equipment" element={<EquipmentPage />} />
+                            <Route path="/equipment/viewer/:id" element={<EquipmentViewerPage />} />
+                        </Routes >
+                    </AuthProvider>
                 </AuthenticatedTemplate >
                 <UnauthenticatedTemplate>
                     <LoginPage />

@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import Layout from '../components/Layout';
+import PermissionAdminPanel from '../components/PermissionAdminPanel';
+import { useAuth } from '../auth/AuthContext';
 import { Item, ProductGroup, Warehouse, Customer } from '../types';
 import {
     getItems, addItem, updateItem, deleteItem,
@@ -8,8 +10,13 @@ import {
     getCustomers, addCustomer, updateCustomer, deleteCustomer
 } from '../storage';
 
+type AdminTabId = 'items' | 'groups' | 'warehouses' | 'customers' | 'permissions';
+
 export default function AdminPage() {
-    const [activeTab, setActiveTab] = useState<'items' | 'groups' | 'warehouses' | 'customers'>('items');
+    const { role } = useAuth();
+    const isAdminRole = role === 'ADMIN';
+
+    const [activeTab, setActiveTab] = useState<AdminTabId>('items');
 
     // 품목 관리 상태
     const [items, setItems] = useState<Item[]>([]);
@@ -371,24 +378,30 @@ export default function AdminPage() {
             )}
 
             {/* 탭 네비게이션 */}
-            <div className="flex gap-2 mb-6 border-b border-gray-200 pb-1">
+            <div className="flex gap-2 mb-6 border-b border-gray-200 pb-1 flex-wrap">
                 {[
-                    { id: 'items', label: '품목 관리' },
-                    { id: 'groups', label: '제품그룹 관리' },
-                    { id: 'warehouses', label: '창고 관리' },
-                    { id: 'customers', label: '출고처 관리' }
-                ].map(tab => (
-                    <button
-                        key={tab.id}
-                        onClick={() => setActiveTab(tab.id as any)}
-                        className={`px-6 py-3 rounded-t-lg font-bold transition-all ${activeTab === tab.id
-                            ? 'bg-blue-600 text-white shadow-md translate-y-[1px]'
-                            : 'bg-transparent text-gray-500 hover:text-blue-600 hover:bg-blue-50'
-                            }`}
-                    >
-                        {tab.label}
-                    </button>
-                ))}
+                    { id: 'items' as const, label: '품목 관리', adminOnly: false },
+                    { id: 'groups' as const, label: '제품그룹 관리', adminOnly: false },
+                    { id: 'warehouses' as const, label: '창고 관리', adminOnly: false },
+                    { id: 'customers' as const, label: '출고처 관리', adminOnly: false },
+                    { id: 'permissions' as const, label: '권한 관리', adminOnly: true },
+                ]
+                    .filter(tab => !tab.adminOnly || isAdminRole)
+                    .map(tab => (
+                        <button
+                            key={tab.id}
+                            onClick={() => setActiveTab(tab.id)}
+                            className={`px-6 py-3 rounded-t-lg font-bold transition-all ${activeTab === tab.id
+                                ? 'bg-blue-600 text-white shadow-md translate-y-[1px]'
+                                : 'bg-transparent text-gray-500 hover:text-blue-600 hover:bg-blue-50'
+                                }`}
+                        >
+                            {tab.id === 'permissions' && (
+                                <i className="ri-shield-user-line mr-2"></i>
+                            )}
+                            {tab.label}
+                        </button>
+                    ))}
             </div>
 
             {/* 품목 관리 탭 */}
@@ -662,6 +675,11 @@ export default function AdminPage() {
                         </div>
                     </div>
                 </>
+            )}
+
+            {/* 권한 관리 탭 (ADMIN 전용) */}
+            {activeTab === 'permissions' && isAdminRole && (
+                <PermissionAdminPanel />
             )}
 
             {/* Modal Styles Updated */}

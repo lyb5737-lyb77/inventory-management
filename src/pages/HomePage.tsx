@@ -1,13 +1,16 @@
 import { useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import Layout from '../components/Layout';
+import { MENUS } from '../constants/menus';
+import { usePermission } from '../auth/usePermission';
 
 export default function HomePage() {
     const navigate = useNavigate();
     const [alertShown, setAlertShown] = useState(false);
+    const { canAccess, isReady, isLoading, hasError, isRegistered, role } = usePermission();
 
     useEffect(() => {
-        if (!alertShown) {
+        if (!alertShown && isReady && canAccess('rental')) {
             const checkContractExpiry = () => {
                 const rentals = JSON.parse(localStorage.getItem('rental_data') || '[]');
                 const today = new Date();
@@ -31,63 +34,45 @@ export default function HomePage() {
 
             checkContractExpiry();
         }
-    }, [alertShown]);
+    }, [alertShown, isReady, canAccess]);
 
-    const cards = [
-        {
-            title: "관리자 페이지",
-            desc: "품목 추가, 수정, 삭제 관리",
-            subDesc: "품명, 제품그룹, 품번, 수량, 가격, 비고",
-            icon: "ri-admin-line",
-            colorClass: "from-blue-500 to-blue-600",
-            path: "/admin"
-        },
-        {
-            title: "자재 관리",
-            desc: "입출고 관리 및 재고 현황",
-            subDesc: "입고, 출고, 재고 검색, 인쇄",
-            icon: "ri-archive-line",
-            colorClass: "from-green-500 to-green-600",
-            path: "/inventory"
-        },
-        {
-            title: "출고 신청",
-            desc: "창고 담당자에게 출고 요청",
-            subDesc: "출고 신청, 이메일 발송, 거래 기록",
-            icon: "ri-truck-line",
-            colorClass: "from-pink-500 to-pink-600",
-            path: "/outbound-request"
-        },
-        {
-            title: "임대 관리",
-            desc: "임대 현황 및 계약 관리",
-            subDesc: "임대 현황, 계약 만료 알림, 엑셀 관리",
-            icon: "ri-building-2-line",
-            colorClass: "from-purple-500 to-purple-600",
-            path: "/rental"
-        },
-        {
-            title: "IP 자산 관리",
-            desc: "IP 대역 및 사용 현황 관리",
-            subDesc: "IP 할당, 사용자 검색, 대역 관리",
-            icon: "ri-computer-line",
-            colorClass: "from-cyan-500 to-cyan-600",
-            path: "/ip-management"
-        },
-        {
-            title: "장비 관리",
-            desc: "업무용 장비 및 이력 관리",
-            subDesc: "장비 정보, 사용 이력, QR 코드",
-            icon: "ri-macbook-line",
-            colorClass: "from-indigo-500 to-indigo-600",
-            path: "/equipment"
-        }
-    ];
+    if (!isReady || isLoading) {
+        return (
+            <Layout>
+                <div className="flex justify-center items-center py-32 text-gray-500">
+                    <i className="ri-loader-4-line animate-spin text-2xl mr-3"></i>
+                    권한 정보를 불러오는 중...
+                </div>
+            </Layout>
+        );
+    }
+
+    const visibleCards = MENUS.filter(m => canAccess(m.key));
 
     return (
         <Layout>
+            {hasError && (
+                <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm flex items-start gap-3">
+                    <i className="ri-error-warning-line text-xl mt-0.5"></i>
+                    <div>
+                        <div className="font-bold mb-1">권한 정보를 불러오지 못했습니다</div>
+                        <div>네트워크 상태를 확인하거나 시스템 관리자에게 문의해 주세요.</div>
+                    </div>
+                </div>
+            )}
+
+            {!hasError && !isRegistered && role === null && (
+                <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-xl text-yellow-800 text-sm flex items-start gap-3">
+                    <i className="ri-information-line text-xl mt-0.5"></i>
+                    <div>
+                        <div className="font-bold mb-1">접근 가능한 메뉴가 없습니다</div>
+                        <div>시스템 관리자에게 메뉴 접근 권한을 요청해 주세요.</div>
+                    </div>
+                </div>
+            )}
+
             <div className="grid md:grid-cols-3 gap-6">
-                {cards.map((card, index) => (
+                {visibleCards.map((card, index) => (
                     <div
                         key={index}
                         onClick={() => navigate(card.path)}
