@@ -1,9 +1,5 @@
 import emailjs from '@emailjs/browser';
-
-// EmailJS 설정
-const EMAILJS_SERVICE_ID = 'service_iw7m5s6';
-const EMAILJS_TEMPLATE_ID = 'template_liqrmaa';
-const EMAILJS_PUBLIC_KEY = 'J8-0xoUen8g9u3pMf';
+import { getMailSettings, MailSettings } from './settings';
 
 interface OutboundEmailData {
     warehouseName: string;
@@ -20,6 +16,13 @@ interface OutboundEmailData {
 }
 
 export const sendOutboundEmail = async (data: OutboundEmailData): Promise<void> => {
+    const cfg = await getMailSettings();
+
+    if (!cfg.enabled) {
+        console.warn('메일 발송이 비활성화되어 있어 발송을 건너뜁니다.');
+        return;
+    }
+
     try {
         // 품목 목록을 문자열로 변환
         const itemList = data.items
@@ -37,16 +40,17 @@ export const sendOutboundEmail = async (data: OutboundEmailData): Promise<void> 
             requester_name: data.requesterName,
             remarks: data.remarks || '없음',
             to_email: data.managerEmail, // 수신자 이메일
+            from_name: cfg.fromName,
+            cc_email: cfg.ccEmail,
         };
 
         console.log('Sending email with params:', templateParams);
 
-        // EmailJS로 이메일 전송
         const response = await emailjs.send(
-            EMAILJS_SERVICE_ID,
-            EMAILJS_TEMPLATE_ID,
+            cfg.serviceId,
+            cfg.templateId,
             templateParams,
-            EMAILJS_PUBLIC_KEY
+            cfg.publicKey
         );
 
         console.log('Email sent successfully:', response);
@@ -56,3 +60,27 @@ export const sendOutboundEmail = async (data: OutboundEmailData): Promise<void> 
     }
 };
 
+// 설정 페이지용 테스트 발송 (저장 전 폼 값으로도 테스트 가능하도록 settings 인자 허용)
+export const sendTestEmail = async (toEmail: string, settings?: MailSettings): Promise<void> => {
+    const cfg = settings || await getMailSettings();
+    try {
+        const templateParams = {
+            warehouse_name: '테스트 발송',
+            manager_email: toEmail,
+            to_email: toEmail,
+            item_list: '테스트 품목 x1',
+            customer_name: cfg.fromName || 'BIT 관리 시스템',
+            customer_address: '-',
+            customer_contact: '-',
+            requester_name: cfg.fromName || 'BIT 관리 시스템',
+            remarks: 'EmailJS 설정 테스트 메일입니다.',
+            from_name: cfg.fromName,
+            cc_email: cfg.ccEmail,
+        };
+
+        await emailjs.send(cfg.serviceId, cfg.templateId, templateParams, cfg.publicKey);
+    } catch (error: any) {
+        console.error('Test email error:', error);
+        throw new Error(`테스트 메일 발송 실패: ${error.text || error.message}`);
+    }
+};

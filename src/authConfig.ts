@@ -33,6 +33,8 @@ export const sharePointConfig = {
         equipments: 'Equipments',
         equipmentLogs: 'EquipmentLogs',
         userPermissions: 'UserPermissions',
+        orders: 'Orders',
+        appSettings: 'AppSettings',
     },
 };
 

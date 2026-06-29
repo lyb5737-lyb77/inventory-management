@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import Layout from '../components/Layout';
 import PermissionAdminPanel from '../components/PermissionAdminPanel';
+import MailSettingsPanel from '../components/MailSettingsPanel';
 import { useAuth } from '../auth/AuthContext';
 import { Item, ProductGroup, Warehouse, Customer } from '../types';
 import {
@@ -10,7 +11,7 @@ import {
     getCustomers, addCustomer, updateCustomer, deleteCustomer
 } from '../storage';
 
-type AdminTabId = 'items' | 'groups' | 'warehouses' | 'customers' | 'permissions';
+type AdminTabId = 'items' | 'groups' | 'warehouses' | 'customers' | 'permissions' | 'mail';
 
 export default function AdminPage() {
     const { role } = useAuth();
@@ -385,6 +386,7 @@ export default function AdminPage() {
                     { id: 'warehouses' as const, label: '창고 관리', adminOnly: false },
                     { id: 'customers' as const, label: '출고처 관리', adminOnly: false },
                     { id: 'permissions' as const, label: '권한 관리', adminOnly: true },
+                    { id: 'mail' as const, label: '메일 설정', adminOnly: true },
                 ]
                     .filter(tab => !tab.adminOnly || isAdminRole)
                     .map(tab => (
@@ -398,6 +400,9 @@ export default function AdminPage() {
                         >
                             {tab.id === 'permissions' && (
                                 <i className="ri-shield-user-line mr-2"></i>
+                            )}
+                            {tab.id === 'mail' && (
+                                <i className="ri-mail-settings-line mr-2"></i>
                             )}
                             {tab.label}
                         </button>
@@ -680,6 +685,11 @@ export default function AdminPage() {
             {/* 권한 관리 탭 (ADMIN 전용) */}
             {activeTab === 'permissions' && isAdminRole && (
                 <PermissionAdminPanel />
+            )}
+
+            {/* 메일 설정 탭 (ADMIN 전용) */}
+            {activeTab === 'mail' && isAdminRole && (
+                <MailSettingsPanel />
             )}
 
             {/* Modal Styles Updated */}

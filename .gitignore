@@ -23,3 +23,6 @@ dist-ssr
 *.sln
 *.sw?
 .claude/
+
+# 참조용 원본 엑셀 (실제 고객 PII 포함 - 커밋 금지)
+비트몰 자재출고*.xlsx

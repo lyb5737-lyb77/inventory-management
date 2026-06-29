@@ -7,6 +7,7 @@ import HomePage from './pages/HomePage';
 import AdminPage from './pages/AdminPage';
 import InventoryPage from './pages/InventoryPage';
 import RentalPage from './pages/RentalPage';
+import OrderRegisterPage from './pages/OrderRegisterPage';
 import OutboundRequestPage from './pages/OutboundRequestPage';
 import IpManagementPage from './pages/IpManagementPage';
 import EquipmentPage from './pages/EquipmentPage';
@@ -25,6 +26,7 @@ function App() {
                             <Route path="/" element={<HomePage />} />
                             <Route path="/admin" element={<AdminPage />} />
                             <Route path="/inventory" element={<InventoryPage />} />
+                            <Route path="/order-register" element={<OrderRegisterPage />} />
                             <Route path="/rental" element={<RentalPage />} />
                             <Route path="/outbound-request" element={<OutboundRequestPage />} />
                             <Route path="/ip-management" element={<IpManagementPage />} />

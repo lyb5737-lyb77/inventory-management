@@ -109,6 +109,27 @@ export interface Equipment {
     remarks: string;          // 비고
 }
 
+// 주문 (Order) 인터페이스 - 비트몰(닥터비트 온라인몰) 자재 출고 신청
+export interface Order {
+    id: string;
+    orderDate: string;        // 주문일자 (엑셀의 출고일자)
+    customerCode: string;     // 거래처코드 (더존번호)
+    customerName: string;     // 거래처명
+    bizNumber: string;        // 사업자번호
+    partNumber: string;       // 품번
+    productName: string;      // 품명
+    quantity: number;         // 수량 (엑셀의 출고수량)
+    salesUnitPrice: number;   // 매출단가
+    paymentType: string;      // 결제구분
+    email: string;            // 이메일
+    contact: string;          // 연락처
+    address: string;          // 주소 (엑셀의 배송처)
+    status: '미처리' | '출고완료'; // 처리상태
+    shippedWarehouse: string; // 출고 창고 (출고신청 처리된 창고)
+    uploadBatch: string;      // 업로드 묶음 식별자 (개별입력은 'manual')
+    remarks: string;          // 비고
+}
+
 // 장비 이력 로그 (EquipmentLog) 인터페이스
 export interface EquipmentLog {
     id: string;

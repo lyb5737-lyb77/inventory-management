@@ -1,6 +1,7 @@
 export type MenuKey =
     | 'admin'
     | 'inventory'
+    | 'order-register'
     | 'outbound-request'
     | 'rental'
     | 'ip-management'
@@ -34,6 +35,15 @@ export const MENUS: MenuDef[] = [
         icon: 'ri-archive-line',
         colorClass: 'from-green-500 to-green-600',
         path: '/inventory',
+    },
+    {
+        key: 'order-register',
+        title: '주문 등록',
+        desc: '비트몰 주문 접수 및 출고 처리',
+        subDesc: '엑셀 업로드, 개별 입력, 출고 신청 연동',
+        icon: 'ri-shopping-cart-2-line',
+        colorClass: 'from-orange-500 to-orange-600',
+        path: '/order-register',
     },
     {
         key: 'outbound-request',

@@ -1,4 +1,4 @@
-import { Item, Transaction, ProductGroup, Rental, Warehouse, Customer, IpRange, IpDetail, Equipment, EquipmentLog } from './types';
+import { Item, Transaction, ProductGroup, Rental, Warehouse, Customer, IpRange, IpDetail, Equipment, EquipmentLog, Order } from './types';
 import { getListItems, createListItem, updateListItem, deleteListItem } from './services/sharepoint';
 import { sharePointConfig } from './authConfig';
 
@@ -767,4 +767,107 @@ export const addEquipmentLog = async (log: Omit<EquipmentLog, 'id'>): Promise<Eq
         newValue: spLog.NewValue || '',
         remarks: spLog.Remarks || '',
     };
+};
+
+// 주문 관리 (비트몰 자재 출고)
+interface SharePointOrder {
+    id: string;
+    Title: string;            // 품번
+    OrderDate: string;
+    CustomerCode: string;     // 더존번호
+    CustomerName: string;
+    BizNumber: string;
+    PartNumber: string;
+    ProductName: string;
+    Quantity: string;
+    SalesUnitPrice: string;
+    PaymentType: string;
+    Email: string;
+    Contact: string;
+    Address: string;
+    Status: string;
+    ShippedWarehouse: string;
+    UploadBatch: string;
+    Remarks: string;
+}
+
+const mapSpOrder = (spOrder: SharePointOrder): Order => ({
+    id: spOrder.id,
+    orderDate: spOrder.OrderDate || '',
+    customerCode: spOrder.CustomerCode || '',
+    customerName: spOrder.CustomerName || '',
+    bizNumber: spOrder.BizNumber || '',
+    partNumber: spOrder.PartNumber || '',
+    productName: spOrder.ProductName || '',
+    quantity: parseInt(spOrder.Quantity) || 0,
+    salesUnitPrice: parseInt(spOrder.SalesUnitPrice) || 0,
+    paymentType: spOrder.PaymentType || '',
+    email: spOrder.Email || '',
+    contact: spOrder.Contact || '',
+    address: spOrder.Address || '',
+    status: (spOrder.Status as '미처리' | '출고완료') || '미처리',
+    shippedWarehouse: spOrder.ShippedWarehouse || '',
+    uploadBatch: spOrder.UploadBatch || '',
+    remarks: spOrder.Remarks || '',
+});
+
+export const getOrders = async (): Promise<Order[]> => {
+    try {
+        const spOrders = await getListItems<SharePointOrder>(sharePointConfig.listNames.orders);
+        return spOrders.map(mapSpOrder);
+    } catch (error) {
+        console.error('Error getting orders:', error);
+        return [];
+    }
+};
+
+export const addOrder = async (order: Omit<Order, 'id'>): Promise<Order> => {
+    const data: any = {
+        Title: order.partNumber || '주문',
+        OrderDate: order.orderDate,
+        CustomerCode: order.customerCode,
+        CustomerName: order.customerName,
+        BizNumber: order.bizNumber,
+        PartNumber: order.partNumber,
+        ProductName: order.productName,
+        Quantity: String(order.quantity),
+        SalesUnitPrice: String(order.salesUnitPrice),
+        PaymentType: order.paymentType,
+        Email: order.email,
+        Contact: order.contact,
+        Address: order.address,
+        Status: order.status,
+        ShippedWarehouse: order.shippedWarehouse,
+        UploadBatch: order.uploadBatch,
+        Remarks: order.remarks,
+    };
+
+    const spOrder = await createListItem<SharePointOrder>(sharePointConfig.listNames.orders, data);
+    return mapSpOrder(spOrder);
+};
+
+export const updateOrder = async (id: string, updates: Partial<Order>): Promise<void> => {
+    const spUpdates: any = {};
+    if (updates.orderDate !== undefined) spUpdates.OrderDate = updates.orderDate;
+    if (updates.customerCode !== undefined) spUpdates.CustomerCode = updates.customerCode;
+    if (updates.customerName !== undefined) spUpdates.CustomerName = updates.customerName;
+    if (updates.bizNumber !== undefined) spUpdates.BizNumber = updates.bizNumber;
+    if (updates.partNumber !== undefined) spUpdates.PartNumber = updates.partNumber;
+    if (updates.productName !== undefined) spUpdates.ProductName = updates.productName;
+    if (updates.quantity !== undefined) spUpdates.Quantity = String(updates.quantity);
+    if (updates.salesUnitPrice !== undefined) spUpdates.SalesUnitPrice = String(updates.salesUnitPrice);
+    if (updates.paymentType !== undefined) spUpdates.PaymentType = updates.paymentType;
+    if (updates.email !== undefined) spUpdates.Email = updates.email;
+    if (updates.contact !== undefined) spUpdates.Contact = updates.contact;
+    if (updates.address !== undefined) spUpdates.Address = updates.address;
+    if (updates.status !== undefined) spUpdates.Status = updates.status;
+    if (updates.shippedWarehouse !== undefined) spUpdates.ShippedWarehouse = updates.shippedWarehouse;
+    if (updates.uploadBatch !== undefined) spUpdates.UploadBatch = updates.uploadBatch;
+    if (updates.remarks !== undefined) spUpdates.Remarks = updates.remarks;
+
+    await updateListItem(sharePointConfig.listNames.orders, id, spUpdates);
+};
+
+export const deleteOrder = async (id: string): Promise<void> => {
+    await deleteListItem(sharePointConfig.listNames.orders, id);
 };
