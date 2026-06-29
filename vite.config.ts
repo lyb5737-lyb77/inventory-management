@@ -15,7 +15,8 @@ export default defineConfig({
                     vendor: ['react', 'react-dom', 'react-router-dom'],
                     msal: ['@azure/msal-browser', '@azure/msal-react'],
                     graph: ['@microsoft/microsoft-graph-client'],
-                    utils: ['xlsx']
+                    utils: ['xlsx'],
+                    exceljs: ['exceljs']
                 }
             }
         }

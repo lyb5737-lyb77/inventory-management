@@ -1,4 +1,5 @@
 import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 import { Rental, Order } from '../types';
 
 // 비트몰(닥터비트 온라인몰) 자재 출고 신청서 파싱
@@ -39,9 +40,20 @@ const normalizeDate = (v: any): string => {
     return String(v).trim().replace(/\./g, '-').replace(/-+$/, '');
 };
 
-// 주문 내역을 비트몰 자재출고 양식(동일 레이아웃)으로 월단위 다운로드
-// 우리가 저장하지 않는 매입단가/매입금액/마진은 공란, 매출금액/부가세/합계액은 자동 계산
-export const exportOrdersExcel = (orders: Order[], yearMonth: string) => {
+// 주문 내역을 "비트몰 자재출고 양식.xlsx"와 동일한 서식으로 월단위 다운로드.
+// 폰트/색상/열너비/번호서식 등을 100% 맞추기 위해, 양식 파일(public/order-template.xlsx)을
+// 그대로 불러와 데이터만 주입한다. (xlsx 무료판은 스타일 쓰기를 지원하지 않아 exceljs 사용)
+// 우리가 저장하지 않는 매입단가/매입금액/마진은 공란, 매출금액/부가세/합계액은 자동 계산.
+const TEMPLATE_LAYOUT = {
+    sheet: 'Worksheet',
+    headerRow: 4,    // 헤더 행 (출고일자~배송처)
+    firstDataRow: 5, // 데이터 시작 행
+    sampleDataRow: 5,  // 데이터 셀 서식 추출 행
+    sampleTotalRow: 12, // 합계 셀 서식 추출 행
+    cols: 18,        // A~R
+};
+
+export const exportOrdersExcel = async (orders: Order[], yearMonth: string): Promise<void> => {
     const monthly = orders
         .filter(o => (o.orderDate || '').startsWith(yearMonth))
         .sort((a, b) => (a.orderDate || '').localeCompare(b.orderDate || ''));
@@ -51,47 +63,82 @@ export const exportOrdersExcel = (orders: Order[], yearMonth: string) => {
     const start = `${yearMonth}-01`;
     const end = `${yearMonth}-${String(lastDay).padStart(2, '0')}`;
 
-    const header = [
-        '출고일자', '사업자번호', '거래처코드', '거래처명', '품번', '품명', '출고수량',
-        '매입단가', '매입금액', '매출단가', '매출금액', '부가세', '합계액', '마진',
-        '결제구분', '이메일주소', '연락처', '배송처',
-    ];
+    const { sheet, firstDataRow, sampleDataRow, sampleTotalRow, cols } = TEMPLATE_LAYOUT;
 
-    const dataRows = monthly.map(o => {
+    // 양식 파일 로드 (서식 보존)
+    const res = await fetch(`${import.meta.env.BASE_URL}order-template.xlsx`);
+    if (!res.ok) throw new Error('출고 양식 파일(order-template.xlsx)을 불러오지 못했습니다.');
+    const wb = new ExcelJS.Workbook();
+    await wb.xlsx.load(await res.arrayBuffer());
+    const ws = wb.getWorksheet(sheet) || wb.worksheets[0];
+
+    // 기준일 갱신 (스타일 유지)
+    ws.getCell('A2').value = `기준일: ${start} ~ ${end}`;
+
+    // 데이터/합계 행의 열별 서식을 미리 캡처
+    const dataStyles: Partial<ExcelJS.Style>[] = [];
+    const totalStyles: Partial<ExcelJS.Style>[] = [];
+    for (let c = 1; c <= cols; c++) {
+        dataStyles[c] = ws.getRow(sampleDataRow).getCell(c).style;
+        totalStyles[c] = ws.getRow(sampleTotalRow).getCell(c).style;
+    }
+    const clearUpTo = Math.max(ws.rowCount, sampleTotalRow);
+
+    // 데이터 행 기록 (열 순서: A~R)
+    let r = firstDataRow;
+    for (const o of monthly) {
         const salesAmount = o.quantity * o.salesUnitPrice;
         const vat = Math.round(salesAmount * 0.1);
-        return [
+        const values: (string | number | null)[] = [
             o.orderDate, o.bizNumber, o.customerCode, o.customerName, o.partNumber, o.productName, o.quantity,
-            '', '', o.salesUnitPrice, salesAmount, vat, salesAmount + vat, '',
+            null, null, o.salesUnitPrice, salesAmount, vat, salesAmount + vat, null,
             o.paymentType, o.email, o.contact, o.address,
         ];
-    });
+        const row = ws.getRow(r);
+        row.height = 30;
+        for (let c = 1; c <= cols; c++) {
+            const cell = row.getCell(c);
+            cell.value = values[c - 1];
+            cell.style = dataStyles[c];
+        }
+        r++;
+    }
 
-    const sumCol = (idx: number) => dataRows.reduce((acc, r) => acc + (Number(r[idx]) || 0), 0);
-    const totalRow = [
-        '', '', '', '', '', '합계', sumCol(6),
-        '', '', '', sumCol(10), sumCol(11), sumCol(12), '',
-        '', '', '', '',
-    ];
+    // 합계 행
+    const sum = (sel: (o: Order) => number) => monthly.reduce((acc, o) => acc + sel(o), 0);
+    const totalSales = sum(o => o.quantity * o.salesUnitPrice);
+    const totalVat = sum(o => Math.round(o.quantity * o.salesUnitPrice * 0.1));
+    const totalRow = ws.getRow(r);
+    totalRow.height = 30;
+    for (let c = 1; c <= cols; c++) totalRow.getCell(c).style = totalStyles[c];
+    totalRow.getCell(6).value = '합계';                 // F 품명열
+    totalRow.getCell(7).value = sum(o => o.quantity);   // G 출고수량
+    totalRow.getCell(11).value = totalSales;            // K 매출금액
+    totalRow.getCell(12).value = totalVat;              // L 부가세
+    totalRow.getCell(13).value = totalSales + totalVat; // M 합계액
+    const totalRowNum = r;
 
-    const aoa = [
-        ['닥터비트 온라인몰 자재 출고 신청서'],
-        [`기준일: ${start} ~ ${end}`],
-        header,
-        ...dataRows,
-        totalRow,
-    ];
+    // 합계 행 이후 남아있는 양식의 빈 행(원본 합계행 포함) 정리
+    for (let rr = totalRowNum + 1; rr <= clearUpTo; rr++) {
+        const row = ws.getRow(rr);
+        for (let c = 1; c <= 20; c++) {
+            const cell = row.getCell(c);
+            cell.value = null;
+            cell.style = {};
+        }
+    }
 
-    const ws = XLSX.utils.aoa_to_sheet(aoa);
-    // 제목/기준일 행 병합 (원본 양식과 동일하게 A~R 18열 병합)
-    ws['!merges'] = [
-        { s: { c: 0, r: 0 }, e: { c: 17, r: 0 } },
-        { s: { c: 0, r: 1 }, e: { c: 17, r: 1 } },
-    ];
-
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Worksheet');
-    XLSX.writeFile(wb, `비트몰 자재출고 ${yearMonth}.xlsx`);
+    // 다운로드
+    const buf = await wb.xlsx.writeBuffer();
+    const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `비트몰 자재출고 ${yearMonth}.xlsx`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
 };
 
 export const readBitmallOrderExcel = (file: File): Promise<ParsedOrderRow[]> => {

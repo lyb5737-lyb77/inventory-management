@@ -318,13 +318,22 @@ export default function OrderRegisterPage() {
         }
     };
 
-    const handleExportMonth = () => {
+    const handleExportMonth = async () => {
         const count = orders.filter(o => (o.orderDate || '').startsWith(exportMonth)).length;
         if (count === 0) {
             alert(`${exportMonth} 주문 내역이 없습니다.`);
             return;
         }
-        exportOrdersExcel(orders, exportMonth);
+        setLoading(true);
+        setBusyMsg('엑셀 양식 생성 중...');
+        setError(null);
+        try {
+            await exportOrdersExcel(orders, exportMonth);
+        } catch (err: any) {
+            setError(err.message || '엑셀 다운로드 실패');
+        } finally {
+            setLoading(false);
+        }
     };
 
     const handleDeleteOrder = async (order: Order) => {
