@@ -48,6 +48,9 @@ interface SharePointCustomer {
     Contact: string;
     email: string; // Changed to lowercase 'email' as requested
     Address: string;
+    BusinessNumber?: string;      // 사업자번호
+    RepresentativeName?: string;   // 대표명
+    MobilePhone?: string;         // 핸드폰
     Remarks: string;
 }
 
@@ -449,6 +452,9 @@ export const getCustomers = async (): Promise<Customer[]> => {
             contact: spCust.Contact || '',
             email: spCust.email || '',
             address: spCust.Address || '',
+            businessNumber: spCust.BusinessNumber || '',
+            representativeName: spCust.RepresentativeName || '',
+            mobilePhone: spCust.MobilePhone || '',
             remarks: spCust.Remarks || '',
         }));
     } catch (error) {
@@ -464,6 +470,9 @@ export const addCustomer = async (customer: Omit<Customer, 'id'>): Promise<Custo
         Contact: customer.contact,
         email: customer.email,
         Address: customer.address,
+        BusinessNumber: customer.businessNumber || '',
+        RepresentativeName: customer.representativeName || '',
+        MobilePhone: customer.mobilePhone || '',
         Remarks: customer.remarks,
     };
 
@@ -476,6 +485,9 @@ export const addCustomer = async (customer: Omit<Customer, 'id'>): Promise<Custo
         contact: spCust.Contact || '',
         email: spCust.email || '',
         address: spCust.Address || '',
+        businessNumber: spCust.BusinessNumber || '',
+        representativeName: spCust.RepresentativeName || '',
+        mobilePhone: spCust.MobilePhone || '',
         remarks: spCust.Remarks || '',
     };
 };
@@ -487,6 +499,9 @@ export const updateCustomer = async (id: string, updates: Partial<Customer>): Pr
     if (updates.contact !== undefined) spUpdates.Contact = updates.contact;
     if (updates.email !== undefined) spUpdates.email = updates.email;
     if (updates.address !== undefined) spUpdates.Address = updates.address;
+    if (updates.businessNumber !== undefined) spUpdates.BusinessNumber = updates.businessNumber;
+    if (updates.representativeName !== undefined) spUpdates.RepresentativeName = updates.representativeName;
+    if (updates.mobilePhone !== undefined) spUpdates.MobilePhone = updates.mobilePhone;
     if (updates.remarks !== undefined) spUpdates.Remarks = updates.remarks;
 
     await updateListItem(sharePointConfig.listNames.customers, id, spUpdates);

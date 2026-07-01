@@ -146,7 +146,10 @@ export default function OrderRegisterPage() {
                     contact: row.contact,
                     email: row.email,
                     address: row.address,
-                    remarks: row.bizNumber ? `사업자번호: ${row.bizNumber}` : '',
+                    businessNumber: row.bizNumber || '',
+                    representativeName: '',
+                    mobilePhone: '',
+                    remarks: '',
                 });
                 knownCodes.add(code);
                 newlyRegistered.push(`${code} (${row.customerName})`);

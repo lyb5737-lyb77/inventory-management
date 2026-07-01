@@ -18,12 +18,15 @@ export interface Warehouse {
 // 출고처 (Customer) 인터페이스
 export interface Customer {
     id: string;
-    douzoneNumber: string; // 더존번호
-    name: string;          // 이름
-    contact: string;       // 연락처
-    email: string;         // 이메일
-    address: string;       // 주소
-    remarks: string;       // 비고
+    douzoneNumber: string;      // 더존번호
+    name: string;               // 이름(출고처명)
+    contact: string;            // 연락처
+    email: string;              // 이메일
+    address: string;            // 주소
+    businessNumber: string;     // 사업자번호
+    representativeName: string;  // 대표명
+    mobilePhone: string;        // 핸드폰
+    remarks: string;            // 비고
 }
 
 // 품목 (Item) 인터페이스

@@ -141,6 +141,81 @@ export const exportOrdersExcel = async (orders: Order[], yearMonth: string): Pro
     URL.revokeObjectURL(url);
 };
 
+// 거래처목록.xlsx 파싱 (헤더: 더존번호/사업자번호/대표명/출고처명/주소/연락처/핸드폰/이메일)
+export interface CustomerImportRow {
+    douzoneNumber: string;
+    businessNumber: string;
+    representativeName: string;
+    name: string;
+    address: string;
+    contact: string;
+    mobilePhone: string;
+    email: string;
+}
+
+export const readCustomerListExcel = (file: File): Promise<CustomerImportRow[]> => {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const data = e.target?.result;
+                const workbook = XLSX.read(data, { type: 'binary' });
+                const sheet = workbook.Sheets[workbook.SheetNames[0]];
+                const aoa = XLSX.utils.sheet_to_json<any[]>(sheet, { header: 1, defval: '', blankrows: false });
+
+                // 헤더 행 탐색 ('더존번호' + '출고처명' 포함)
+                const headerIdx = aoa.findIndex(row =>
+                    row.some(c => cellStr(c) === '더존번호') &&
+                    row.some(c => ['출고처명', '거래처명', '상호'].includes(cellStr(c)))
+                );
+                if (headerIdx === -1) {
+                    resolve([]);
+                    return;
+                }
+                const header = aoa[headerIdx].map(cellStr);
+                const col = (...names: string[]): number => {
+                    for (const n of names) {
+                        const i = header.indexOf(n);
+                        if (i !== -1) return i;
+                    }
+                    return -1;
+                };
+                const idx = {
+                    douzoneNumber: col('더존번호'),
+                    businessNumber: col('사업자번호'),
+                    representativeName: col('대표명', '대표자', '대표자명'),
+                    name: col('출고처명', '거래처명', '상호'),
+                    address: col('주소'),
+                    contact: col('연락처', '전화번호', '전화'),
+                    mobilePhone: col('핸드폰', '휴대폰', '휴대전화', '핸드폰번호'),
+                    email: col('이메일', '이메일주소', 'email', 'E-mail'),
+                };
+                const at = (row: any[], i: number) => (i >= 0 ? row[i] : '');
+
+                const rows: CustomerImportRow[] = aoa.slice(headerIdx + 1)
+                    .map((row) => ({
+                        douzoneNumber: cellStr(at(row, idx.douzoneNumber)),
+                        businessNumber: cellStr(at(row, idx.businessNumber)),
+                        representativeName: cellStr(at(row, idx.representativeName)),
+                        name: cellStr(at(row, idx.name)),
+                        address: cellStr(at(row, idx.address)),
+                        contact: cellStr(at(row, idx.contact)),
+                        mobilePhone: cellStr(at(row, idx.mobilePhone)),
+                        email: cellStr(at(row, idx.email)),
+                    }))
+                    // 더존번호와 출고처명이 모두 없는 행 제외
+                    .filter(r => r.douzoneNumber || r.name);
+
+                resolve(rows);
+            } catch (error) {
+                reject(error);
+            }
+        };
+        reader.onerror = (error) => reject(error);
+        reader.readAsBinaryString(file);
+    });
+};
+
 export const readBitmallOrderExcel = (file: File): Promise<ParsedOrderRow[]> => {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();

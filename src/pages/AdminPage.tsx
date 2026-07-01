@@ -11,6 +11,7 @@ import {
     getCustomers, addCustomer, updateCustomer, deleteCustomer,
     getTransactions, getOrders
 } from '../storage';
+import { readCustomerListExcel } from '../services/excelService';
 
 type AdminTabId = 'items' | 'groups' | 'warehouses' | 'customers' | 'permissions' | 'mail';
 
@@ -65,6 +66,9 @@ export default function AdminPage() {
         contact: '',
         email: '',
         address: '',
+        businessNumber: '',
+        representativeName: '',
+        mobilePhone: '',
         remarks: '',
     });
 
@@ -74,6 +78,10 @@ export default function AdminPage() {
     const [transactions, setTransactions] = useState<Transaction[]>([]);
     const [orders, setOrders] = useState<Order[]>([]);
     const [usageLoaded, setUsageLoaded] = useState(false);
+
+    // 출고처 엑셀 일괄 임포트 진행 상태
+    const [importing, setImporting] = useState(false);
+    const [importProgress, setImportProgress] = useState({ done: 0, total: 0 });
 
     // 로딩 및 에러 상태
     const [loading, setLoading] = useState(false);
@@ -406,6 +414,9 @@ export default function AdminPage() {
             contact: customer.contact,
             email: customer.email || '',
             address: customer.address,
+            businessNumber: customer.businessNumber || '',
+            representativeName: customer.representativeName || '',
+            mobilePhone: customer.mobilePhone || '',
             remarks: customer.remarks,
         });
         setIsCustomerModalOpen(true);
@@ -433,20 +444,149 @@ export default function AdminPage() {
             contact: '',
             email: '',
             address: '',
+            businessNumber: '',
+            representativeName: '',
+            mobilePhone: '',
             remarks: '',
         });
         setEditingCustomer(null);
         setIsCustomerModalOpen(false);
     };
 
+    // 거래처목록.xlsx 일괄 임포트 (더존번호 기준 upsert)
+    const handleCustomerImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        e.target.value = ''; // 동일 파일 재선택 허용
+        if (!file) return;
+        setError(null);
+
+        let rows;
+        try {
+            rows = await readCustomerListExcel(file);
+        } catch (err: any) {
+            alert('엑셀 파싱 실패: ' + (err.message || err));
+            return;
+        }
+        if (rows.length === 0) {
+            alert('엑셀에서 거래처 데이터를 찾지 못했습니다. (헤더: 더존번호, 출고처명 ...)');
+            return;
+        }
+
+        // 파일 내 더존번호 중복 제거 (마지막 값 우선), 더존번호 없는 행은 개별 유지
+        const byCode = new Map<string, typeof rows[number]>();
+        const noCode: typeof rows = [];
+        for (const r of rows) {
+            const code = r.douzoneNumber.trim();
+            if (code) byCode.set(code, r); else noCode.push(r);
+        }
+        const deduped = [...byCode.values(), ...noCode];
+
+        // 기존 출고처 조회 (더존번호 기준 신규/갱신 판정)
+        let existing;
+        try {
+            existing = await getCustomers();
+        } catch (err: any) {
+            alert('기존 출고처 조회 실패로 임포트를 중단합니다.');
+            return;
+        }
+        const existingByCode = new Map(
+            existing.filter(c => c.douzoneNumber.trim()).map(c => [c.douzoneNumber.trim(), c]),
+        );
+        const willUpdate = deduped.filter(r => r.douzoneNumber.trim() && existingByCode.has(r.douzoneNumber.trim())).length;
+        const willCreate = deduped.length - willUpdate;
+
+        if (!confirm(
+            `총 ${deduped.length}건을 반영합니다. (신규 ${willCreate} · 갱신 ${willUpdate})\n` +
+            (rows.length !== deduped.length ? `※ 파일 내 중복 더존번호 ${rows.length - deduped.length}건은 최신값으로 병합됩니다.\n` : '') +
+            `\n건수가 많으면 수 분 이상 걸릴 수 있습니다. 진행할까요?`
+        )) return;
+
+        const buildCreate = (r: typeof deduped[number]) => ({
+            name: r.name,
+            douzoneNumber: r.douzoneNumber,
+            contact: r.contact,
+            email: r.email,
+            address: r.address,
+            businessNumber: r.businessNumber,
+            representativeName: r.representativeName,
+            mobilePhone: r.mobilePhone,
+            remarks: '',
+        });
+        // 갱신 시 비고(remarks)는 건드리지 않음
+        const buildUpdate = (r: typeof deduped[number]) => ({
+            name: r.name,
+            douzoneNumber: r.douzoneNumber,
+            contact: r.contact,
+            email: r.email,
+            address: r.address,
+            businessNumber: r.businessNumber,
+            representativeName: r.representativeName,
+            mobilePhone: r.mobilePhone,
+        });
+        const upsertOne = async (r: typeof deduped[number]) => {
+            const ex = r.douzoneNumber.trim() ? existingByCode.get(r.douzoneNumber.trim()) : undefined;
+            if (ex) await updateCustomer(ex.id, buildUpdate(r));
+            else await addCustomer(buildCreate(r));
+        };
+
+        setImporting(true);
+        setImportProgress({ done: 0, total: deduped.length });
+        let done = 0, fail = 0;
+
+        // 안전 점검: 첫 건 먼저 시도 (SharePoint 컬럼 누락 시 조기 중단)
+        try {
+            await upsertOne(deduped[0]);
+            done = 1;
+            setImportProgress({ done, total: deduped.length });
+        } catch (err: any) {
+            setImporting(false);
+            setError(
+                '첫 건 반영에 실패했습니다. SharePoint Customers 리스트에 ' +
+                'BusinessNumber · RepresentativeName · MobilePhone 컬럼이 있는지 확인하세요. (' +
+                (err.message || err) + ')',
+            );
+            return;
+        }
+
+        // 나머지를 소규모 동시 처리 (throttling 완화)
+        const CONCURRENCY = 4;
+        const rest = deduped.slice(1);
+        for (let i = 0; i < rest.length; i += CONCURRENCY) {
+            const chunk = rest.slice(i, i + CONCURRENCY);
+            const results = await Promise.allSettled(chunk.map(upsertOne));
+            results.forEach(res => { if (res.status === 'rejected') fail++; });
+            done += chunk.length;
+            setImportProgress({ done, total: deduped.length });
+        }
+
+        setImporting(false);
+        await Promise.all([loadCustomers(), loadUsage()]);
+        alert(`임포트 완료: 성공 ${done - fail}건, 실패 ${fail}건 (총 ${deduped.length}건)`);
+    };
+
     return (
         <Layout title="관리자 페이지" showBackButton={true}>
             {/* 로딩 표시 */}
-            {loading && (
+            {loading && !importing && (
                 <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-50">
                     <div className="bg-white rounded-2xl p-8 shadow-2xl flex flex-col items-center gap-4">
                         <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
                         <p className="text-gray-600 font-semibold">처리 중...</p>
+                    </div>
+                </div>
+            )}
+
+            {/* 엑셀 임포트 진행 표시 */}
+            {importing && (
+                <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
+                    <div className="bg-white rounded-2xl p-8 shadow-2xl flex flex-col items-center gap-4 w-80">
+                        <div className="w-12 h-12 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
+                        <p className="text-gray-700 font-semibold">출고처 반영 중...</p>
+                        <p className="text-gray-500 text-sm">{importProgress.done} / {importProgress.total}</p>
+                        <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
+                            <div className="bg-emerald-500 h-2 transition-all" style={{ width: `${importProgress.total ? Math.round(importProgress.done / importProgress.total * 100) : 0}%` }}></div>
+                        </div>
+                        <p className="text-gray-400 text-xs text-center">진행 중 창을 닫지 마세요.</p>
                     </div>
                 </div>
             )}
@@ -704,6 +844,13 @@ export default function AdminPage() {
                                     className="pl-10 pr-4 py-2 bg-white border border-gray-200 rounded-xl text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent w-64 shadow-sm"
                                 />
                             </div>
+                            <label
+                                title="거래처목록.xlsx 일괄 업로드 (더존번호 기준 신규 생성/갱신)"
+                                className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2.5 px-5 rounded-xl shadow-lg transition-all flex items-center gap-2 cursor-pointer"
+                            >
+                                <i className="ri-file-excel-2-line"></i> 엑셀 업로드
+                                <input type="file" accept=".xlsx,.xls" onChange={handleCustomerImport} className="hidden" />
+                            </label>
                             <button
                                 onClick={handleDeleteUnusedCustomers}
                                 disabled={!usageLoaded || unusedCustomers.length === 0}
@@ -944,21 +1091,38 @@ export default function AdminPage() {
                                         className="w-full px-4 py-2.5 bg-gray-50 border border-gray-300 rounded-xl text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all" />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-semibold text-gray-700 mb-1">이름</label>
+                                    <label className="block text-sm font-semibold text-gray-700 mb-1">이름(출고처명)</label>
                                     <input type="text" required value={customerFormData.name} onChange={(e) => setCustomerFormData({ ...customerFormData, name: e.target.value })}
                                         className="w-full px-4 py-2.5 bg-gray-50 border border-gray-300 rounded-xl text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all" />
                                 </div>
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
-                                        <label className="block text-sm font-semibold text-gray-700 mb-1">연락처</label>
-                                        <input type="text" required value={customerFormData.contact} onChange={(e) => setCustomerFormData({ ...customerFormData, contact: e.target.value })}
+                                        <label className="block text-sm font-semibold text-gray-700 mb-1">사업자번호</label>
+                                        <input type="text" value={customerFormData.businessNumber} onChange={(e) => setCustomerFormData({ ...customerFormData, businessNumber: e.target.value })}
                                             className="w-full px-4 py-2.5 bg-gray-50 border border-gray-300 rounded-xl text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all" />
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-semibold text-gray-700 mb-1">이메일</label>
-                                        <input type="email" value={customerFormData.email} onChange={(e) => setCustomerFormData({ ...customerFormData, email: e.target.value })}
+                                        <label className="block text-sm font-semibold text-gray-700 mb-1">대표명</label>
+                                        <input type="text" value={customerFormData.representativeName} onChange={(e) => setCustomerFormData({ ...customerFormData, representativeName: e.target.value })}
                                             className="w-full px-4 py-2.5 bg-gray-50 border border-gray-300 rounded-xl text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all" />
                                     </div>
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-sm font-semibold text-gray-700 mb-1">연락처</label>
+                                        <input type="text" value={customerFormData.contact} onChange={(e) => setCustomerFormData({ ...customerFormData, contact: e.target.value })}
+                                            className="w-full px-4 py-2.5 bg-gray-50 border border-gray-300 rounded-xl text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all" />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-semibold text-gray-700 mb-1">핸드폰</label>
+                                        <input type="text" value={customerFormData.mobilePhone} onChange={(e) => setCustomerFormData({ ...customerFormData, mobilePhone: e.target.value })}
+                                            className="w-full px-4 py-2.5 bg-gray-50 border border-gray-300 rounded-xl text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all" />
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-semibold text-gray-700 mb-1">이메일</label>
+                                    <input type="email" value={customerFormData.email} onChange={(e) => setCustomerFormData({ ...customerFormData, email: e.target.value })}
+                                        className="w-full px-4 py-2.5 bg-gray-50 border border-gray-300 rounded-xl text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all" />
                                 </div>
                                 <div>
                                     <label className="block text-sm font-semibold text-gray-700 mb-1">주소</label>
