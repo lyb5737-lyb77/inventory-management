@@ -1,17 +1,15 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import Layout from '../components/Layout';
 import PermissionAdminPanel from '../components/PermissionAdminPanel';
 import MailSettingsPanel from '../components/MailSettingsPanel';
 import { useAuth } from '../auth/AuthContext';
-import { Item, ProductGroup, Warehouse, Customer, Transaction, Order } from '../types';
+import { Item, ProductGroup, Warehouse, Customer } from '../types';
 import {
     getItems, addItem, updateItem, deleteItem,
     getProductGroups, addProductGroup, updateProductGroup, deleteProductGroup,
     getWarehouses, addWarehouse, updateWarehouse, deleteWarehouse,
-    getCustomers, addCustomer, updateCustomer, deleteCustomer,
-    getTransactions, getOrders
+    getCustomers, addCustomer, updateCustomer, deleteCustomer
 } from '../storage';
-import { readCustomerListExcel } from '../services/excelService';
 
 type AdminTabId = 'items' | 'groups' | 'warehouses' | 'customers' | 'permissions' | 'mail';
 
@@ -74,15 +72,6 @@ export default function AdminPage() {
 
     const [customerSearch, setCustomerSearch] = useState('');
 
-    // 출고처 사용여부 판별용 데이터 (거래/주문)
-    const [transactions, setTransactions] = useState<Transaction[]>([]);
-    const [orders, setOrders] = useState<Order[]>([]);
-    const [usageLoaded, setUsageLoaded] = useState(false);
-
-    // 출고처 엑셀 일괄 임포트 진행 상태
-    const [importing, setImporting] = useState(false);
-    const [importProgress, setImportProgress] = useState({ done: 0, total: 0 });
-
     // 로딩 및 에러 상태
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -95,20 +84,12 @@ export default function AdminPage() {
         setLoading(true);
         setError(null);
         try {
-            await Promise.all([loadItems(), loadProductGroups(), loadWarehouses(), loadCustomers(), loadUsage()]);
+            await Promise.all([loadItems(), loadProductGroups(), loadWarehouses(), loadCustomers()]);
         } catch (err: any) {
             setError(err.message || '데이터 로드 실패');
         } finally {
             setLoading(false);
         }
-    };
-
-    // 출고처 사용여부 판별용 데이터 로드 (거래/주문)
-    const loadUsage = async () => {
-        const [txs, ords] = await Promise.all([getTransactions(), getOrders()]);
-        setTransactions(txs);
-        setOrders(ords);
-        setUsageLoaded(true);
     };
 
     const loadItems = async () => {
@@ -129,78 +110,6 @@ export default function AdminPage() {
     const loadCustomers = async () => {
         const data = await getCustomers();
         setCustomers(data);
-    };
-
-    // 사용된 출고처 판별: 출고 거래의 출고처명 또는 주문의 거래처명/거래처코드에 등장하면 "사용됨"
-    const norm = (s: string) => (s || '').trim();
-    const usedNames = useMemo(() => {
-        const set = new Set<string>();
-        transactions.forEach(t => { if (norm(t.target || '')) set.add(norm(t.target || '')); });
-        orders.forEach(o => { if (norm(o.customerName)) set.add(norm(o.customerName)); });
-        return set;
-    }, [transactions, orders]);
-    const usedCodes = useMemo(() => {
-        const set = new Set<string>();
-        orders.forEach(o => { if (norm(o.customerCode)) set.add(norm(o.customerCode)); });
-        return set;
-    }, [orders]);
-
-    const isCustomerUsed = (c: Customer): boolean =>
-        usedNames.has(norm(c.name)) || (!!norm(c.douzoneNumber) && usedCodes.has(norm(c.douzoneNumber)));
-
-    const unusedCustomers = useMemo(
-        () => customers.filter(c => !isCustomerUsed(c)),
-        [customers, usedNames, usedCodes],
-    );
-
-    // 미사용 출고처 일괄 삭제 (되돌릴 수 없음 → 재조회 + 확인)
-    const handleDeleteUnusedCustomers = async () => {
-        setError(null);
-        // 삭제 직전 최신 데이터 재조회 (오판 방지)
-        let freshTxs: Transaction[], freshOrders: Order[], freshCustomers: Customer[];
-        try {
-            [freshTxs, freshOrders, freshCustomers] = await Promise.all([getTransactions(), getOrders(), getCustomers()]);
-        } catch (err: any) {
-            alert('사용 내역(거래/주문) 조회에 실패하여 안전을 위해 삭제를 중단합니다.');
-            return;
-        }
-
-        const names = new Set<string>();
-        freshTxs.forEach(t => { if (norm(t.target || '')) names.add(norm(t.target || '')); });
-        freshOrders.forEach(o => { if (norm(o.customerName)) names.add(norm(o.customerName)); });
-        const codes = new Set<string>();
-        freshOrders.forEach(o => { if (norm(o.customerCode)) codes.add(norm(o.customerCode)); });
-        const unused = freshCustomers.filter(c =>
-            !(names.has(norm(c.name)) || (!!norm(c.douzoneNumber) && codes.has(norm(c.douzoneNumber))))
-        );
-
-        if (unused.length === 0) {
-            alert('미사용 출고처가 없습니다.');
-            return;
-        }
-
-        // 안전장치: 거래/주문이 하나도 없으면 전체가 미사용으로 판단됨 → 강한 경고
-        if (freshTxs.length === 0 && freshOrders.length === 0) {
-            if (!confirm('거래·주문 내역이 전혀 없어 등록된 출고처 전체가 "미사용"으로 판단됩니다.\n데이터 로드 문제일 수 있습니다. 그래도 진행하시겠습니까?')) return;
-        }
-
-        const preview = unused.slice(0, 20).map(c => `• ${c.name} (${c.douzoneNumber || '번호없음'})`).join('\n');
-        const more = unused.length > 20 ? `\n...외 ${unused.length - 20}건` : '';
-        if (!confirm(`미사용 출고처 ${unused.length}건을 삭제합니다.\n이 작업은 되돌릴 수 없습니다.\n\n${preview}${more}\n\n삭제하시겠습니까?`)) return;
-
-        setLoading(true);
-        try {
-            for (const c of unused) {
-                await deleteCustomer(c.id);
-            }
-            await Promise.all([loadCustomers(), loadUsage()]);
-            alert(`미사용 출고처 ${unused.length}건을 삭제했습니다.`);
-        } catch (err: any) {
-            setError(err.message || '삭제 중 오류가 발생했습니다.');
-            await loadCustomers();
-        } finally {
-            setLoading(false);
-        }
     };
 
     // 품목 관련 핸들러
@@ -453,140 +362,14 @@ export default function AdminPage() {
         setIsCustomerModalOpen(false);
     };
 
-    // 거래처목록.xlsx 일괄 임포트 (더존번호 기준 upsert)
-    const handleCustomerImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        e.target.value = ''; // 동일 파일 재선택 허용
-        if (!file) return;
-        setError(null);
-
-        let rows;
-        try {
-            rows = await readCustomerListExcel(file);
-        } catch (err: any) {
-            alert('엑셀 파싱 실패: ' + (err.message || err));
-            return;
-        }
-        if (rows.length === 0) {
-            alert('엑셀에서 거래처 데이터를 찾지 못했습니다. (헤더: 더존번호, 출고처명 ...)');
-            return;
-        }
-
-        // 파일 내 더존번호 중복 제거 (마지막 값 우선), 더존번호 없는 행은 개별 유지
-        const byCode = new Map<string, typeof rows[number]>();
-        const noCode: typeof rows = [];
-        for (const r of rows) {
-            const code = r.douzoneNumber.trim();
-            if (code) byCode.set(code, r); else noCode.push(r);
-        }
-        const deduped = [...byCode.values(), ...noCode];
-
-        // 기존 출고처 조회 (더존번호 기준 신규/갱신 판정)
-        let existing;
-        try {
-            existing = await getCustomers();
-        } catch (err: any) {
-            alert('기존 출고처 조회 실패로 임포트를 중단합니다.');
-            return;
-        }
-        const existingByCode = new Map(
-            existing.filter(c => c.douzoneNumber.trim()).map(c => [c.douzoneNumber.trim(), c]),
-        );
-        const willUpdate = deduped.filter(r => r.douzoneNumber.trim() && existingByCode.has(r.douzoneNumber.trim())).length;
-        const willCreate = deduped.length - willUpdate;
-
-        if (!confirm(
-            `총 ${deduped.length}건을 반영합니다. (신규 ${willCreate} · 갱신 ${willUpdate})\n` +
-            (rows.length !== deduped.length ? `※ 파일 내 중복 더존번호 ${rows.length - deduped.length}건은 최신값으로 병합됩니다.\n` : '') +
-            `\n건수가 많으면 수 분 이상 걸릴 수 있습니다. 진행할까요?`
-        )) return;
-
-        const buildCreate = (r: typeof deduped[number]) => ({
-            name: r.name,
-            douzoneNumber: r.douzoneNumber,
-            contact: r.contact,
-            email: r.email,
-            address: r.address,
-            businessNumber: r.businessNumber,
-            representativeName: r.representativeName,
-            mobilePhone: r.mobilePhone,
-            remarks: '',
-        });
-        // 갱신 시 비고(remarks)는 건드리지 않음
-        const buildUpdate = (r: typeof deduped[number]) => ({
-            name: r.name,
-            douzoneNumber: r.douzoneNumber,
-            contact: r.contact,
-            email: r.email,
-            address: r.address,
-            businessNumber: r.businessNumber,
-            representativeName: r.representativeName,
-            mobilePhone: r.mobilePhone,
-        });
-        const upsertOne = async (r: typeof deduped[number]) => {
-            const ex = r.douzoneNumber.trim() ? existingByCode.get(r.douzoneNumber.trim()) : undefined;
-            if (ex) await updateCustomer(ex.id, buildUpdate(r));
-            else await addCustomer(buildCreate(r));
-        };
-
-        setImporting(true);
-        setImportProgress({ done: 0, total: deduped.length });
-        let done = 0, fail = 0;
-
-        // 안전 점검: 첫 건 먼저 시도 (SharePoint 컬럼 누락 시 조기 중단)
-        try {
-            await upsertOne(deduped[0]);
-            done = 1;
-            setImportProgress({ done, total: deduped.length });
-        } catch (err: any) {
-            setImporting(false);
-            setError(
-                '첫 건 반영에 실패했습니다. SharePoint Customers 리스트에 ' +
-                'OfficeNumber · CEO · MobilePhone 컬럼이 있는지 확인하세요. (' +
-                (err.message || err) + ')',
-            );
-            return;
-        }
-
-        // 나머지를 소규모 동시 처리 (throttling 완화)
-        const CONCURRENCY = 4;
-        const rest = deduped.slice(1);
-        for (let i = 0; i < rest.length; i += CONCURRENCY) {
-            const chunk = rest.slice(i, i + CONCURRENCY);
-            const results = await Promise.allSettled(chunk.map(upsertOne));
-            results.forEach(res => { if (res.status === 'rejected') fail++; });
-            done += chunk.length;
-            setImportProgress({ done, total: deduped.length });
-        }
-
-        setImporting(false);
-        await Promise.all([loadCustomers(), loadUsage()]);
-        alert(`임포트 완료: 성공 ${done - fail}건, 실패 ${fail}건 (총 ${deduped.length}건)`);
-    };
-
     return (
         <Layout title="관리자 페이지" showBackButton={true}>
             {/* 로딩 표시 */}
-            {loading && !importing && (
+            {loading && (
                 <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-50">
                     <div className="bg-white rounded-2xl p-8 shadow-2xl flex flex-col items-center gap-4">
                         <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
                         <p className="text-gray-600 font-semibold">처리 중...</p>
-                    </div>
-                </div>
-            )}
-
-            {/* 엑셀 임포트 진행 표시 */}
-            {importing && (
-                <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
-                    <div className="bg-white rounded-2xl p-8 shadow-2xl flex flex-col items-center gap-4 w-80">
-                        <div className="w-12 h-12 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
-                        <p className="text-gray-700 font-semibold">출고처 반영 중...</p>
-                        <p className="text-gray-500 text-sm">{importProgress.done} / {importProgress.total}</p>
-                        <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
-                            <div className="bg-emerald-500 h-2 transition-all" style={{ width: `${importProgress.total ? Math.round(importProgress.done / importProgress.total * 100) : 0}%` }}></div>
-                        </div>
-                        <p className="text-gray-400 text-xs text-center">진행 중 창을 닫지 마세요.</p>
                     </div>
                 </div>
             )}
@@ -844,21 +627,6 @@ export default function AdminPage() {
                                     className="pl-10 pr-4 py-2 bg-white border border-gray-200 rounded-xl text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent w-64 shadow-sm"
                                 />
                             </div>
-                            <label
-                                title="거래처목록.xlsx 일괄 업로드 (더존번호 기준 신규 생성/갱신)"
-                                className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2.5 px-5 rounded-xl shadow-lg transition-all flex items-center gap-2 cursor-pointer"
-                            >
-                                <i className="ri-file-excel-2-line"></i> 엑셀 업로드
-                                <input type="file" accept=".xlsx,.xls" onChange={handleCustomerImport} className="hidden" />
-                            </label>
-                            <button
-                                onClick={handleDeleteUnusedCustomers}
-                                disabled={!usageLoaded || unusedCustomers.length === 0}
-                                title={!usageLoaded ? '사용 내역 로딩 중' : '거래·주문에 한 번도 사용되지 않은 출고처를 일괄 삭제'}
-                                className="bg-red-500 hover:bg-red-600 disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold py-2.5 px-5 rounded-xl shadow-lg transition-all flex items-center gap-2"
-                            >
-                                <i className="ri-delete-bin-line"></i> 미사용 삭제 ({unusedCustomers.length})
-                            </button>
                             <button
                                 onClick={() => setIsCustomerModalOpen(true)}
                                 className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 px-6 rounded-xl shadow-lg transition-all flex items-center gap-2"
@@ -895,12 +663,7 @@ export default function AdminPage() {
                                             )
                                             .map((customer) => (
                                                 <tr key={customer.id} className="hover:bg-blue-50 transition-colors">
-                                                    <td className="px-6 py-4 truncate max-w-[240px] text-gray-900 font-medium" title={customer.name}>
-                                                        {customer.name}
-                                                        {usageLoaded && !isCustomerUsed(customer) && (
-                                                            <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full bg-red-100 text-red-600 text-[11px] font-bold align-middle">미사용</span>
-                                                        )}
-                                                    </td>
+                                                    <td className="px-6 py-4 truncate max-w-[240px] text-gray-900 font-medium" title={customer.name}>{customer.name}</td>
                                                     <td className="px-6 py-4 whitespace-nowrap text-gray-600">{customer.douzoneNumber}</td>
                                                     <td className="px-6 py-4 whitespace-nowrap text-gray-600">{customer.contact}</td>
                                                     <td className="px-6 py-4 text-gray-600">{customer.email}</td>
