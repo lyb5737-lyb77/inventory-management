@@ -1,14 +1,15 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Layout from '../components/Layout';
 import PermissionAdminPanel from '../components/PermissionAdminPanel';
 import MailSettingsPanel from '../components/MailSettingsPanel';
 import { useAuth } from '../auth/AuthContext';
-import { Item, ProductGroup, Warehouse, Customer } from '../types';
+import { Item, ProductGroup, Warehouse, Customer, Transaction, Order } from '../types';
 import {
     getItems, addItem, updateItem, deleteItem,
     getProductGroups, addProductGroup, updateProductGroup, deleteProductGroup,
     getWarehouses, addWarehouse, updateWarehouse, deleteWarehouse,
-    getCustomers, addCustomer, updateCustomer, deleteCustomer
+    getCustomers, addCustomer, updateCustomer, deleteCustomer,
+    getTransactions, getOrders
 } from '../storage';
 
 type AdminTabId = 'items' | 'groups' | 'warehouses' | 'customers' | 'permissions' | 'mail';
@@ -69,6 +70,11 @@ export default function AdminPage() {
 
     const [customerSearch, setCustomerSearch] = useState('');
 
+    // 출고처 사용여부 판별용 데이터 (거래/주문)
+    const [transactions, setTransactions] = useState<Transaction[]>([]);
+    const [orders, setOrders] = useState<Order[]>([]);
+    const [usageLoaded, setUsageLoaded] = useState(false);
+
     // 로딩 및 에러 상태
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -81,12 +87,20 @@ export default function AdminPage() {
         setLoading(true);
         setError(null);
         try {
-            await Promise.all([loadItems(), loadProductGroups(), loadWarehouses(), loadCustomers()]);
+            await Promise.all([loadItems(), loadProductGroups(), loadWarehouses(), loadCustomers(), loadUsage()]);
         } catch (err: any) {
             setError(err.message || '데이터 로드 실패');
         } finally {
             setLoading(false);
         }
+    };
+
+    // 출고처 사용여부 판별용 데이터 로드 (거래/주문)
+    const loadUsage = async () => {
+        const [txs, ords] = await Promise.all([getTransactions(), getOrders()]);
+        setTransactions(txs);
+        setOrders(ords);
+        setUsageLoaded(true);
     };
 
     const loadItems = async () => {
@@ -107,6 +121,78 @@ export default function AdminPage() {
     const loadCustomers = async () => {
         const data = await getCustomers();
         setCustomers(data);
+    };
+
+    // 사용된 출고처 판별: 출고 거래의 출고처명 또는 주문의 거래처명/거래처코드에 등장하면 "사용됨"
+    const norm = (s: string) => (s || '').trim();
+    const usedNames = useMemo(() => {
+        const set = new Set<string>();
+        transactions.forEach(t => { if (norm(t.target || '')) set.add(norm(t.target || '')); });
+        orders.forEach(o => { if (norm(o.customerName)) set.add(norm(o.customerName)); });
+        return set;
+    }, [transactions, orders]);
+    const usedCodes = useMemo(() => {
+        const set = new Set<string>();
+        orders.forEach(o => { if (norm(o.customerCode)) set.add(norm(o.customerCode)); });
+        return set;
+    }, [orders]);
+
+    const isCustomerUsed = (c: Customer): boolean =>
+        usedNames.has(norm(c.name)) || (!!norm(c.douzoneNumber) && usedCodes.has(norm(c.douzoneNumber)));
+
+    const unusedCustomers = useMemo(
+        () => customers.filter(c => !isCustomerUsed(c)),
+        [customers, usedNames, usedCodes],
+    );
+
+    // 미사용 출고처 일괄 삭제 (되돌릴 수 없음 → 재조회 + 확인)
+    const handleDeleteUnusedCustomers = async () => {
+        setError(null);
+        // 삭제 직전 최신 데이터 재조회 (오판 방지)
+        let freshTxs: Transaction[], freshOrders: Order[], freshCustomers: Customer[];
+        try {
+            [freshTxs, freshOrders, freshCustomers] = await Promise.all([getTransactions(), getOrders(), getCustomers()]);
+        } catch (err: any) {
+            alert('사용 내역(거래/주문) 조회에 실패하여 안전을 위해 삭제를 중단합니다.');
+            return;
+        }
+
+        const names = new Set<string>();
+        freshTxs.forEach(t => { if (norm(t.target || '')) names.add(norm(t.target || '')); });
+        freshOrders.forEach(o => { if (norm(o.customerName)) names.add(norm(o.customerName)); });
+        const codes = new Set<string>();
+        freshOrders.forEach(o => { if (norm(o.customerCode)) codes.add(norm(o.customerCode)); });
+        const unused = freshCustomers.filter(c =>
+            !(names.has(norm(c.name)) || (!!norm(c.douzoneNumber) && codes.has(norm(c.douzoneNumber))))
+        );
+
+        if (unused.length === 0) {
+            alert('미사용 출고처가 없습니다.');
+            return;
+        }
+
+        // 안전장치: 거래/주문이 하나도 없으면 전체가 미사용으로 판단됨 → 강한 경고
+        if (freshTxs.length === 0 && freshOrders.length === 0) {
+            if (!confirm('거래·주문 내역이 전혀 없어 등록된 출고처 전체가 "미사용"으로 판단됩니다.\n데이터 로드 문제일 수 있습니다. 그래도 진행하시겠습니까?')) return;
+        }
+
+        const preview = unused.slice(0, 20).map(c => `• ${c.name} (${c.douzoneNumber || '번호없음'})`).join('\n');
+        const more = unused.length > 20 ? `\n...외 ${unused.length - 20}건` : '';
+        if (!confirm(`미사용 출고처 ${unused.length}건을 삭제합니다.\n이 작업은 되돌릴 수 없습니다.\n\n${preview}${more}\n\n삭제하시겠습니까?`)) return;
+
+        setLoading(true);
+        try {
+            for (const c of unused) {
+                await deleteCustomer(c.id);
+            }
+            await Promise.all([loadCustomers(), loadUsage()]);
+            alert(`미사용 출고처 ${unused.length}건을 삭제했습니다.`);
+        } catch (err: any) {
+            setError(err.message || '삭제 중 오류가 발생했습니다.');
+            await loadCustomers();
+        } finally {
+            setLoading(false);
+        }
     };
 
     // 품목 관련 핸들러
@@ -619,6 +705,14 @@ export default function AdminPage() {
                                 />
                             </div>
                             <button
+                                onClick={handleDeleteUnusedCustomers}
+                                disabled={!usageLoaded || unusedCustomers.length === 0}
+                                title={!usageLoaded ? '사용 내역 로딩 중' : '거래·주문에 한 번도 사용되지 않은 출고처를 일괄 삭제'}
+                                className="bg-red-500 hover:bg-red-600 disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold py-2.5 px-5 rounded-xl shadow-lg transition-all flex items-center gap-2"
+                            >
+                                <i className="ri-delete-bin-line"></i> 미사용 삭제 ({unusedCustomers.length})
+                            </button>
+                            <button
                                 onClick={() => setIsCustomerModalOpen(true)}
                                 className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 px-6 rounded-xl shadow-lg transition-all flex items-center gap-2"
                             >
@@ -654,7 +748,12 @@ export default function AdminPage() {
                                             )
                                             .map((customer) => (
                                                 <tr key={customer.id} className="hover:bg-blue-50 transition-colors">
-                                                    <td className="px-6 py-4 truncate max-w-[200px] text-gray-900 font-medium" title={customer.name}>{customer.name}</td>
+                                                    <td className="px-6 py-4 truncate max-w-[240px] text-gray-900 font-medium" title={customer.name}>
+                                                        {customer.name}
+                                                        {usageLoaded && !isCustomerUsed(customer) && (
+                                                            <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full bg-red-100 text-red-600 text-[11px] font-bold align-middle">미사용</span>
+                                                        )}
+                                                    </td>
                                                     <td className="px-6 py-4 whitespace-nowrap text-gray-600">{customer.douzoneNumber}</td>
                                                     <td className="px-6 py-4 whitespace-nowrap text-gray-600">{customer.contact}</td>
                                                     <td className="px-6 py-4 text-gray-600">{customer.email}</td>
