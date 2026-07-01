@@ -542,7 +542,7 @@ export default function AdminPage() {
             setImporting(false);
             setError(
                 '첫 건 반영에 실패했습니다. SharePoint Customers 리스트에 ' +
-                'BusinessNumber · RepresentativeName · MobilePhone 컬럼이 있는지 확인하세요. (' +
+                'OfficeNumber · CEO · MobilePhone 컬럼이 있는지 확인하세요. (' +
                 (err.message || err) + ')',
             );
             return;
