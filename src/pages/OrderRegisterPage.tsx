@@ -190,7 +190,7 @@ export default function OrderRegisterPage() {
             const byBiz = new Map(existingCustomers.filter(c => c.businessNumber.trim()).map(c => [c.businessNumber.trim(), c] as const));
             const prepared: ParsedOrderRow[] = parsedRows.map(r => {
                 let code = r.customerCode.trim();
-                let biz = r.bizNumber.trim();
+                let biz = (r.bizNumber || '').replace(/\D/g, ''); // 사업자번호는 숫자만으로 비교/저장
                 if (!code && biz) {
                     const ex = byBiz.get(biz);
                     if (ex) code = ex.douzoneNumber.trim();

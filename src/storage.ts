@@ -452,7 +452,7 @@ export const getCustomers = async (): Promise<Customer[]> => {
             contact: spCust.Contact || '',
             email: spCust.email || '',
             address: spCust.Address || '',
-            businessNumber: spCust.OfficeNumber || '',
+            businessNumber: (spCust.OfficeNumber || '').replace(/\D/g, ''), // 사업자번호는 숫자만
             representativeName: spCust.CEO || '',
             mobilePhone: spCust.MobilePhone || '',
             remarks: spCust.Remarks || '',
@@ -470,7 +470,7 @@ export const addCustomer = async (customer: Omit<Customer, 'id'>): Promise<Custo
         Contact: customer.contact,
         email: customer.email,
         Address: customer.address,
-        OfficeNumber: customer.businessNumber || '',
+        OfficeNumber: (customer.businessNumber || '').replace(/\D/g, ''), // 사업자번호는 숫자만 저장
         CEO: customer.representativeName || '',
         MobilePhone: customer.mobilePhone || '',
         Remarks: customer.remarks,
@@ -485,7 +485,7 @@ export const addCustomer = async (customer: Omit<Customer, 'id'>): Promise<Custo
         contact: spCust.Contact || '',
         email: spCust.email || '',
         address: spCust.Address || '',
-        businessNumber: spCust.OfficeNumber || '',
+        businessNumber: (spCust.OfficeNumber || '').replace(/\D/g, ''),
         representativeName: spCust.CEO || '',
         mobilePhone: spCust.MobilePhone || '',
         remarks: spCust.Remarks || '',
@@ -499,7 +499,7 @@ export const updateCustomer = async (id: string, updates: Partial<Customer>): Pr
     if (updates.contact !== undefined) spUpdates.Contact = updates.contact;
     if (updates.email !== undefined) spUpdates.email = updates.email;
     if (updates.address !== undefined) spUpdates.Address = updates.address;
-    if (updates.businessNumber !== undefined) spUpdates.OfficeNumber = updates.businessNumber;
+    if (updates.businessNumber !== undefined) spUpdates.OfficeNumber = (updates.businessNumber || '').replace(/\D/g, '');
     if (updates.representativeName !== undefined) spUpdates.CEO = updates.representativeName;
     if (updates.mobilePhone !== undefined) spUpdates.MobilePhone = updates.mobilePhone;
     if (updates.remarks !== undefined) spUpdates.Remarks = updates.remarks;
