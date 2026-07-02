@@ -61,6 +61,14 @@ export default function OrderRegisterPage() {
     const [pendingShip, setPendingShip] = useState<PendingShip | null>(null);
     const [shipRemarks, setShipRemarks] = useState('');
 
+    // 거래처코드 입력(해결) 모달 — 코드가 없고 사업자번호로도 못 찾은 행
+    const [resolveState, setResolveState] = useState<{
+        prepared: ParsedOrderRow[];      // 코드/사업자번호 보완 완료된 전체 행
+        unresolvedIdx: number[];         // 코드가 여전히 없는 행 인덱스
+        existingCustomers: Customer[];
+    } | null>(null);
+    const [resolveInputs, setResolveInputs] = useState<Record<number, string>>({});
+
     useEffect(() => {
         loadData();
     }, []);
@@ -124,53 +132,160 @@ export default function OrderRegisterPage() {
         }
     };
 
+    // 업로드 검증 → (필요 시) 거래처코드 입력 → 등록
     const handleRegisterParsed = async () => {
         if (parsedRows.length === 0) return;
-        if (!confirm(`${parsedRows.length}건의 주문을 등록하시겠습니까?`)) return;
-
+        setError(null);
+        setNotice(null);
         setLoading(true);
+        setBusyMsg('검증 중...');
+
+        try {
+            const [itemsData, existingCustomers, allOrders] = await Promise.all([
+                getItems(), getCustomers(), getOrders(),
+            ]);
+
+            // (4) 미등록 품번 검사
+            const partSet = new Set(itemsData.map(i => i.partNumber.trim()).filter(Boolean));
+            const unregistered = parsedRows.filter(r => !partSet.has(r.partNumber.trim()));
+
+            // (3) 최근 10개 업로드 배치의 품번→품명 사전으로 불일치 검사
+            const batchIds = Array.from(new Set(allOrders.map(o => o.uploadBatch).filter(Boolean))).sort();
+            const recentBatches = new Set(batchIds.slice(-10));
+            const histMap = new Map<string, Set<string>>();
+            allOrders.forEach(o => {
+                if (!recentBatches.has(o.uploadBatch)) return;
+                const pn = o.partNumber.trim(); const nm = o.productName.trim();
+                if (!pn || !nm) return;
+                if (!histMap.has(pn)) histMap.set(pn, new Set());
+                histMap.get(pn)!.add(nm);
+            });
+            const mismatches = parsedRows.filter(r => {
+                const pn = r.partNumber.trim(); const nm = r.productName.trim();
+                const hist = histMap.get(pn);
+                return hist && hist.size > 0 && nm && !hist.has(nm);
+            });
+
+            // (3)(4) 하나라도 문제면 전체 중단
+            if (unregistered.length > 0 || mismatches.length > 0) {
+                let msg = '';
+                if (unregistered.length > 0) {
+                    msg += `❌ 미등록 품번 ${unregistered.length}건 — 오타이거나 제품 등록이 필요합니다:\n`
+                        + unregistered.slice(0, 12).map(r => `· ${r.partNumber} (${r.productName})`).join('\n')
+                        + (unregistered.length > 12 ? `\n…외 ${unregistered.length - 12}건` : '') + '\n\n';
+                }
+                if (mismatches.length > 0) {
+                    msg += `❌ 품번-품명 불일치 ${mismatches.length}건 — 최근 주문과 품명이 다릅니다:\n`
+                        + mismatches.slice(0, 12).map(r => `· ${r.partNumber}: '${r.productName}' ↔ 기존 '${Array.from(histMap.get(r.partNumber.trim())!).join(', ')}'`).join('\n')
+                        + (mismatches.length > 12 ? `\n…외 ${mismatches.length - 12}건` : '') + '\n\n';
+                }
+                setError(msg + '수정 후 다시 업로드해주세요. (전체 중단)');
+                setLoading(false);
+                return;
+            }
+
+            // (1) 사업자번호로만 보완: 코드 없으면 사업자번호로 기존 출고처를 찾아 코드 채움,
+            //     코드는 있는데 사업자번호가 비면 기존 출고처에서 사업자번호 보완
+            const byCode = new Map(existingCustomers.filter(c => c.douzoneNumber.trim()).map(c => [c.douzoneNumber.trim(), c] as const));
+            const byBiz = new Map(existingCustomers.filter(c => c.businessNumber.trim()).map(c => [c.businessNumber.trim(), c] as const));
+            const prepared: ParsedOrderRow[] = parsedRows.map(r => {
+                let code = r.customerCode.trim();
+                let biz = r.bizNumber.trim();
+                if (!code && biz) {
+                    const ex = byBiz.get(biz);
+                    if (ex) code = ex.douzoneNumber.trim();
+                }
+                if (code && !biz) {
+                    const ex = byCode.get(code);
+                    if (ex && ex.businessNumber.trim()) biz = ex.businessNumber.trim();
+                }
+                return { ...r, customerCode: code, bizNumber: biz };
+            });
+
+            // (2) 여전히 코드가 없는 행 → 입력 모달
+            const unresolvedIdx = prepared.map((r, i) => (r.customerCode ? -1 : i)).filter(i => i >= 0);
+            if (unresolvedIdx.length > 0) {
+                const inputs: Record<number, string> = {};
+                unresolvedIdx.forEach(i => { inputs[i] = ''; });
+                setResolveInputs(inputs);
+                setResolveState({ prepared, unresolvedIdx, existingCustomers });
+                setLoading(false);
+                return;
+            }
+
+            // 모두 해결됨 → 확인 후 등록
+            setLoading(false);
+            if (!confirm(`검증 완료. ${prepared.length}건의 주문을 등록하시겠습니까?`)) return;
+            await finalizeRegistration(prepared, existingCustomers);
+        } catch (err: any) {
+            setError(err.message || '검증 중 오류가 발생했습니다.');
+            setLoading(false);
+        }
+    };
+
+    // 실제 거래처(신규) + 주문 등록. (5) 사업자번호·거래처코드 고유성 검증 포함.
+    const finalizeRegistration = async (rows: ParsedOrderRow[], existingCustomers: Customer[]) => {
+        setLoading(true);
+        setBusyMsg('주문 등록 중...');
         setError(null);
         const batchId = `B${new Date().toISOString().replace(/[-:T.Z]/g, '').slice(0, 14)}`;
         const newlyRegistered: string[] = [];
 
         try {
-            // 1. 미등록 거래처 자동 등록 (배치 내 중복 코드는 1회만)
+            const byCode = new Map(existingCustomers.filter(c => c.douzoneNumber.trim()).map(c => [c.douzoneNumber.trim(), c] as const));
+            const byBiz = new Map(existingCustomers.filter(c => c.businessNumber.trim()).map(c => [c.businessNumber.trim(), c] as const));
+            const createdCodes = new Set<string>();
+            const createdBiz = new Set<string>();
+
             setBusyMsg('거래처 확인 및 등록 중...');
-            const knownCodes = new Set(customers.map(c => c.douzoneNumber.trim()));
-            for (const row of parsedRows) {
-                const code = row.customerCode.trim();
-                if (!code || knownCodes.has(code)) continue;
+            for (const r of rows) {
+                const code = r.customerCode.trim();
+                const biz = r.bizNumber.trim();
+                if (!code) throw new Error('거래처코드가 없는 행이 있어 중단합니다.');
+
+                const existing = byCode.get(code);
+                if (existing || createdCodes.has(code)) {
+                    // 기존/이미 처리된 거래처 — 사업자번호 상충 검사 (5)
+                    if (existing && biz && existing.businessNumber.trim() && existing.businessNumber.trim() !== biz) {
+                        throw new Error(`거래처코드 ${code}의 사업자번호가 기존(${existing.businessNumber})과 다릅니다: '${biz}'. 전체 중단.`);
+                    }
+                    continue;
+                }
+                // 신규 거래처 — (5) 사업자번호가 다른 거래처에 이미 있으면 중복 등록 불가
+                if (biz && (byBiz.has(biz) || createdBiz.has(biz))) {
+                    throw new Error(`사업자번호 '${biz}'는 이미 다른 거래처에 등록되어 있어 신규 등록할 수 없습니다. (거래처코드 ${code}) 전체 중단.`);
+                }
                 await addCustomer({
                     douzoneNumber: code,
-                    name: row.customerName || code,
-                    contact: row.contact,
-                    email: row.email,
-                    address: row.address,
-                    businessNumber: row.bizNumber || '',
+                    name: r.customerName || code,
+                    contact: r.contact,
+                    email: r.email,
+                    address: r.address,
+                    businessNumber: biz,
                     representativeName: '',
                     mobilePhone: '',
                     remarks: '',
                 });
-                knownCodes.add(code);
-                newlyRegistered.push(`${code} (${row.customerName})`);
+                createdCodes.add(code);
+                if (biz) createdBiz.add(biz);
+                newlyRegistered.push(`${code} (${r.customerName})`);
             }
 
-            // 2. 주문 등록
-            setBusyMsg('주문 등록 중...');
-            for (const row of parsedRows) {
+            setBusyMsg('주문 저장 중...');
+            for (const r of rows) {
                 await addOrder({
-                    orderDate: row.orderDate,
-                    customerCode: row.customerCode,
-                    customerName: row.customerName,
-                    bizNumber: row.bizNumber,
-                    partNumber: row.partNumber,
-                    productName: row.productName,
-                    quantity: row.quantity,
-                    salesUnitPrice: row.salesUnitPrice,
-                    paymentType: row.paymentType,
-                    email: row.email,
-                    contact: row.contact,
-                    address: row.address,
+                    orderDate: r.orderDate,
+                    customerCode: r.customerCode,
+                    customerName: r.customerName,
+                    bizNumber: r.bizNumber,
+                    partNumber: r.partNumber,
+                    productName: r.productName,
+                    quantity: r.quantity,
+                    salesUnitPrice: r.salesUnitPrice,
+                    paymentType: r.paymentType,
+                    email: r.email,
+                    contact: r.contact,
+                    address: r.address,
                     status: '미처리',
                     shippedWarehouse: '',
                     uploadBatch: batchId,
@@ -179,11 +294,12 @@ export default function OrderRegisterPage() {
             }
 
             setParsedRows([]);
+            setResolveState(null);
             await loadData();
             setNotice(
-                `주문 ${parsedRows.length}건 등록 완료.` +
+                `주문 ${rows.length}건 등록 완료.` +
                 (newlyRegistered.length > 0
-                    ? ` 신규 거래처 ${newlyRegistered.length}건 자동 등록: ${newlyRegistered.join(', ')}`
+                    ? ` 신규 거래처 ${newlyRegistered.length}건 등록: ${newlyRegistered.join(', ')}`
                     : ' (신규 등록 거래처 없음)')
             );
         } catch (err: any) {
@@ -191,6 +307,28 @@ export default function OrderRegisterPage() {
         } finally {
             setLoading(false);
         }
+    };
+
+    // 거래처코드 입력 모달 제출: 하나라도 비면 전체 중단
+    const submitResolve = async () => {
+        if (!resolveState) return;
+        const { prepared, unresolvedIdx, existingCustomers } = resolveState;
+        for (const i of unresolvedIdx) {
+            if (!(resolveInputs[i] || '').trim()) {
+                alert('모든 거래처코드를 입력해야 합니다. 빈 값이 있어 전체 등록을 중단합니다.');
+                return;
+            }
+        }
+        const resolved = prepared.map((r, i) =>
+            unresolvedIdx.includes(i) ? { ...r, customerCode: resolveInputs[i].trim() } : r,
+        );
+        setResolveState(null);
+        await finalizeRegistration(resolved, existingCustomers);
+    };
+
+    const cancelResolve = () => {
+        setResolveState(null);
+        setError('거래처코드 입력이 취소되어 전체 등록을 중단했습니다.');
     };
 
     // ===== 개별 입력 =====
@@ -752,6 +890,58 @@ export default function OrderRegisterPage() {
                     </div>
                 </div>
             ))}
+
+            {/* 거래처코드 입력(해결) 모달 — 코드 없고 사업자번호로도 못 찾은 행 */}
+            {resolveState && (
+                <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+                    <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full p-8 border border-gray-100 max-h-[85vh] flex flex-col">
+                        <h3 className="text-xl font-bold text-gray-800 mb-1">거래처코드 입력</h3>
+                        <p className="text-sm text-gray-500 mb-5">
+                            아래 {resolveState.unresolvedIdx.length}건은 거래처코드가 없고 사업자번호로도 기존 출고처를 찾지 못했습니다.
+                            거래처코드를 입력하면 신규 출고처로 등록됩니다. <span className="text-red-500 font-semibold">하나라도 비우거나 취소하면 전체 등록이 중단됩니다.</span>
+                        </p>
+                        <div className="flex-1 overflow-y-auto min-h-0 border rounded-xl border-gray-100">
+                            <table className="min-w-full text-sm divide-y divide-gray-100">
+                                <thead className="bg-gray-50 sticky top-0">
+                                    <tr className="text-left text-xs font-bold text-gray-500 uppercase">
+                                        <th className="px-3 py-2">거래처명</th>
+                                        <th className="px-3 py-2">사업자번호</th>
+                                        <th className="px-3 py-2">주소</th>
+                                        <th className="px-3 py-2">거래처코드 *</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-100 bg-white">
+                                    {resolveState.unresolvedIdx.map(i => {
+                                        const r = resolveState.prepared[i];
+                                        return (
+                                            <tr key={i} className="hover:bg-gray-50">
+                                                <td className="px-3 py-2 font-semibold text-gray-800">{r.customerName || '(이름없음)'}</td>
+                                                <td className="px-3 py-2 text-gray-500 font-mono text-xs">{r.bizNumber || '-'}</td>
+                                                <td className="px-3 py-2 text-gray-500 text-xs max-w-[260px] truncate" title={r.address}>{r.address || '-'}</td>
+                                                <td className="px-3 py-2">
+                                                    <input
+                                                        type="text"
+                                                        value={resolveInputs[i] || ''}
+                                                        onChange={(e) => setResolveInputs(prev => ({ ...prev, [i]: e.target.value }))}
+                                                        placeholder="더존번호 입력"
+                                                        className="w-40 px-3 py-1.5 bg-gray-50 border border-gray-300 rounded-lg text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                    />
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                        </div>
+                        <div className="flex gap-3 justify-end mt-6">
+                            <button onClick={cancelResolve} className="px-5 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-xl font-semibold transition">취소 (전체 중단)</button>
+                            <button onClick={submitResolve} className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold transition shadow-md flex items-center gap-2">
+                                <i className="ri-check-line"></i>입력 완료 · 등록
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </Layout>
     );
 }
