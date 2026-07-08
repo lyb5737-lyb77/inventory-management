@@ -1,6 +1,6 @@
 import * as XLSX from 'xlsx';
 import ExcelJS from 'exceljs';
-import { Rental, Order } from '../types';
+import { Rental, Order, Item } from '../types';
 
 // 비트몰(닥터비트 온라인몰) 자재 출고 신청서 파싱
 // 양식: 1행 제목, 2행 기준일, 3행 헤더(출고일자/거래처코드/거래처명/품번/품명/출고수량/매출단가/결제구분/이메일주소/연락처/배송처...), 4행~ 데이터, 마지막 합계행
@@ -66,10 +66,17 @@ const FIXED_COLS: Record<number, string> = {
     26: '3100',  // 프로젝트코드
 };
 
-export const exportOrdersExcel = async (orders: Order[], yearMonth: string): Promise<void> => {
+export const exportOrdersExcel = async (orders: Order[], yearMonth: string, items: Item[] = []): Promise<void> => {
     const monthly = orders
         .filter(o => (o.orderDate || '').startsWith(yearMonth))
         .sort((a, b) => (a.orderDate || '').localeCompare(b.orderDate || ''));
+
+    // 품번 → 매입단가(품목 가격) 매핑
+    const purchasePriceByPart = new Map<string, number>();
+    items.forEach(i => {
+        const pn = i.partNumber.trim();
+        if (pn && !purchasePriceByPart.has(pn)) purchasePriceByPart.set(pn, i.price || 0);
+    });
 
     const [y, m] = yearMonth.split('-').map(Number);
     const lastDay = new Date(y, m, 0).getDate(); // m=1~12 → 해당 월 말일
@@ -100,17 +107,20 @@ export const exportOrdersExcel = async (orders: Order[], yearMonth: string): Pro
     // 데이터 행 기록 (열 순서: A~AA)
     let r = firstDataRow;
     for (const o of monthly) {
+        const purchaseUnit = purchasePriceByPart.get(o.partNumber.trim()) || 0; // 매입단가 = 품목 가격
+        const purchaseAmount = o.quantity * purchaseUnit;                        // 매입금액 = 출고수량 × 매입단가
         const salesAmount = o.quantity * o.salesUnitPrice;
         const vat = Math.round(salesAmount * 0.1);
+        const margin = salesAmount - purchaseAmount;                             // 마진 = 매출금액 − 매입금액
         // 1-based 열 순서대로 값 구성
         const values: (string | number | null)[] = [
             FIXED_COLS[1], FIXED_COLS[2],           // 창고코드, 장소코드
             o.orderDate, o.bizNumber, o.customerCode, o.customerName, // 출고일자, 사업자번호, 거래처코드, 거래처명
             FIXED_COLS[7], FIXED_COLS[8], FIXED_COLS[9],  // 거래구분, 과세구분, 단가구분
             o.partNumber, o.productName, o.quantity, // 품번, 품명, 출고수량
-            null, null,                              // 매입단가, 매입금액 (공란)
+            purchaseUnit, purchaseAmount,            // 매입단가, 매입금액
             o.salesUnitPrice, salesAmount, vat, salesAmount + vat, // 매출단가, 매출금액, 부가세, 합계액
-            null,                                    // 마진 (공란)
+            margin,                                  // 마진
             o.paymentType, o.email, o.contact, o.address, // 결제구분, 이메일주소, 연락처, 배송처
             FIXED_COLS[24], FIXED_COLS[25], FIXED_COLS[26], // 환종, 환율, 프로젝트코드
             o.quantity,                              // 재고수량 = 출고수량
@@ -126,7 +136,9 @@ export const exportOrdersExcel = async (orders: Order[], yearMonth: string): Pro
     }
 
     // 합계 행 (품명열에 '합계', 수량/금액 합계)
+    const purchaseUnitOf = (o: Order) => purchasePriceByPart.get(o.partNumber.trim()) || 0;
     const sum = (sel: (o: Order) => number) => monthly.reduce((acc, o) => acc + sel(o), 0);
+    const totalPurchase = sum(o => o.quantity * purchaseUnitOf(o));
     const totalSales = sum(o => o.quantity * o.salesUnitPrice);
     const totalVat = sum(o => Math.round(o.quantity * o.salesUnitPrice * 0.1));
     const totalRow = ws.getRow(r);
@@ -134,9 +146,11 @@ export const exportOrdersExcel = async (orders: Order[], yearMonth: string): Pro
     for (let c = 1; c <= cols; c++) totalRow.getCell(c).style = totalStyles[c];
     totalRow.getCell(11).value = '합계';                 // K 품명열
     totalRow.getCell(12).value = sum(o => o.quantity);   // L 출고수량
+    totalRow.getCell(14).value = totalPurchase;          // N 매입금액
     totalRow.getCell(16).value = totalSales;             // P 매출금액
     totalRow.getCell(17).value = totalVat;               // Q 부가세
     totalRow.getCell(18).value = totalSales + totalVat;  // R 합계액
+    totalRow.getCell(19).value = totalSales - totalPurchase; // S 마진
     const totalRowNum = r;
 
     // 합계 행 이후 남아있는 양식의 빈 행 정리

@@ -469,7 +469,7 @@ export default function OrderRegisterPage() {
         setBusyMsg('엑셀 양식 생성 중...');
         setError(null);
         try {
-            await exportOrdersExcel(orders, exportMonth);
+            await exportOrdersExcel(orders, exportMonth, items);
         } catch (err: any) {
             setError(err.message || '엑셀 다운로드 실패');
         } finally {
