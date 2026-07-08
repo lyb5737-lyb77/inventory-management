@@ -40,17 +40,30 @@ const normalizeDate = (v: any): string => {
     return String(v).trim().replace(/\./g, '-').replace(/-+$/, '');
 };
 
-// 주문 내역을 "비트몰 자재출고 양식.xlsx"와 동일한 서식으로 월단위 다운로드.
+// 주문 내역을 "비트몰 자재출고 2026-07.xlsx"와 동일한 서식(27열 ERP 양식)으로 월단위 다운로드.
 // 폰트/색상/열너비/번호서식 등을 100% 맞추기 위해, 양식 파일(public/order-template.xlsx)을
 // 그대로 불러와 데이터만 주입한다. (xlsx 무료판은 스타일 쓰기를 지원하지 않아 exceljs 사용)
-// 우리가 저장하지 않는 매입단가/매입금액/마진은 공란, 매출금액/부가세/합계액은 자동 계산.
+// 창고코드/장소코드/거래구분/과세구분/단가구분/환종/환율/프로젝트코드는 항상 고정값,
+// 재고수량은 출고수량과 동일, 매입단가/매입금액/마진은 공란, 매출금액/부가세/합계액은 자동 계산.
 const TEMPLATE_LAYOUT = {
     sheet: 'Worksheet',
-    headerRow: 4,    // 헤더 행 (출고일자~배송처)
-    firstDataRow: 5, // 데이터 시작 행
-    sampleDataRow: 5,  // 데이터 셀 서식 추출 행
-    sampleTotalRow: 12, // 합계 셀 서식 추출 행
-    cols: 18,        // A~R
+    baseDateCell: 'C2', // 기준일 셀 (제목/기준일은 C열부터 병합)
+    firstDataRow: 9,    // 데이터 시작 행 (헤더 8행)
+    sampleDataRow: 9,   // 데이터 셀 서식 추출 행
+    sampleTotalRow: 16, // 합계 셀 서식 추출 행
+    cols: 27,           // A~AA
+};
+
+// 항상 동일하게 들어가는 고정값 (열 번호는 1-based)
+const FIXED_COLS: Record<number, string> = {
+    1: '1000',   // 창고코드
+    2: '1100',   // 장소코드
+    7: '0',      // 거래구분
+    8: '0',      // 과세구분
+    9: '0',      // 단가구분
+    24: 'KRW',   // 환종
+    25: '1',     // 환율
+    26: '3100',  // 프로젝트코드
 };
 
 export const exportOrdersExcel = async (orders: Order[], yearMonth: string): Promise<void> => {
@@ -63,7 +76,7 @@ export const exportOrdersExcel = async (orders: Order[], yearMonth: string): Pro
     const start = `${yearMonth}-01`;
     const end = `${yearMonth}-${String(lastDay).padStart(2, '0')}`;
 
-    const { sheet, firstDataRow, sampleDataRow, sampleTotalRow, cols } = TEMPLATE_LAYOUT;
+    const { sheet, baseDateCell, firstDataRow, sampleDataRow, sampleTotalRow, cols } = TEMPLATE_LAYOUT;
 
     // 양식 파일 로드 (서식 보존)
     const res = await fetch(`${import.meta.env.BASE_URL}order-template.xlsx`);
@@ -73,7 +86,7 @@ export const exportOrdersExcel = async (orders: Order[], yearMonth: string): Pro
     const ws = wb.getWorksheet(sheet) || wb.worksheets[0];
 
     // 기준일 갱신 (스타일 유지)
-    ws.getCell('A2').value = `기준일: ${start} ~ ${end}`;
+    ws.getCell(baseDateCell).value = `기준일: ${start} ~ ${end}`;
 
     // 데이터/합계 행의 열별 서식을 미리 캡처
     const dataStyles: Partial<ExcelJS.Style>[] = [];
@@ -84,15 +97,23 @@ export const exportOrdersExcel = async (orders: Order[], yearMonth: string): Pro
     }
     const clearUpTo = Math.max(ws.rowCount, sampleTotalRow);
 
-    // 데이터 행 기록 (열 순서: A~R)
+    // 데이터 행 기록 (열 순서: A~AA)
     let r = firstDataRow;
     for (const o of monthly) {
         const salesAmount = o.quantity * o.salesUnitPrice;
         const vat = Math.round(salesAmount * 0.1);
+        // 1-based 열 순서대로 값 구성
         const values: (string | number | null)[] = [
-            o.orderDate, o.bizNumber, o.customerCode, o.customerName, o.partNumber, o.productName, o.quantity,
-            null, null, o.salesUnitPrice, salesAmount, vat, salesAmount + vat, null,
-            o.paymentType, o.email, o.contact, o.address,
+            FIXED_COLS[1], FIXED_COLS[2],           // 창고코드, 장소코드
+            o.orderDate, o.bizNumber, o.customerCode, o.customerName, // 출고일자, 사업자번호, 거래처코드, 거래처명
+            FIXED_COLS[7], FIXED_COLS[8], FIXED_COLS[9],  // 거래구분, 과세구분, 단가구분
+            o.partNumber, o.productName, o.quantity, // 품번, 품명, 출고수량
+            null, null,                              // 매입단가, 매입금액 (공란)
+            o.salesUnitPrice, salesAmount, vat, salesAmount + vat, // 매출단가, 매출금액, 부가세, 합계액
+            null,                                    // 마진 (공란)
+            o.paymentType, o.email, o.contact, o.address, // 결제구분, 이메일주소, 연락처, 배송처
+            FIXED_COLS[24], FIXED_COLS[25], FIXED_COLS[26], // 환종, 환율, 프로젝트코드
+            o.quantity,                              // 재고수량 = 출고수량
         ];
         const row = ws.getRow(r);
         row.height = 30;
@@ -104,24 +125,24 @@ export const exportOrdersExcel = async (orders: Order[], yearMonth: string): Pro
         r++;
     }
 
-    // 합계 행
+    // 합계 행 (품명열에 '합계', 수량/금액 합계)
     const sum = (sel: (o: Order) => number) => monthly.reduce((acc, o) => acc + sel(o), 0);
     const totalSales = sum(o => o.quantity * o.salesUnitPrice);
     const totalVat = sum(o => Math.round(o.quantity * o.salesUnitPrice * 0.1));
     const totalRow = ws.getRow(r);
     totalRow.height = 30;
     for (let c = 1; c <= cols; c++) totalRow.getCell(c).style = totalStyles[c];
-    totalRow.getCell(6).value = '합계';                 // F 품명열
-    totalRow.getCell(7).value = sum(o => o.quantity);   // G 출고수량
-    totalRow.getCell(11).value = totalSales;            // K 매출금액
-    totalRow.getCell(12).value = totalVat;              // L 부가세
-    totalRow.getCell(13).value = totalSales + totalVat; // M 합계액
+    totalRow.getCell(11).value = '합계';                 // K 품명열
+    totalRow.getCell(12).value = sum(o => o.quantity);   // L 출고수량
+    totalRow.getCell(16).value = totalSales;             // P 매출금액
+    totalRow.getCell(17).value = totalVat;               // Q 부가세
+    totalRow.getCell(18).value = totalSales + totalVat;  // R 합계액
     const totalRowNum = r;
 
-    // 합계 행 이후 남아있는 양식의 빈 행(원본 합계행 포함) 정리
+    // 합계 행 이후 남아있는 양식의 빈 행 정리
     for (let rr = totalRowNum + 1; rr <= clearUpTo; rr++) {
         const row = ws.getRow(rr);
-        for (let c = 1; c <= 20; c++) {
+        for (let c = 1; c <= cols; c++) {
             const cell = row.getCell(c);
             cell.value = null;
             cell.style = {};
