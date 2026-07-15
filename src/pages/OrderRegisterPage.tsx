@@ -69,6 +69,10 @@ export default function OrderRegisterPage() {
     } | null>(null);
     const [resolveInputs, setResolveInputs] = useState<Record<number, string>>({});
 
+    // 품번 수정 모달 (잘못 등록된 주문의 품번 정정)
+    const [correctingOrder, setCorrectingOrder] = useState<Order | null>(null);
+    const [correctForm, setCorrectForm] = useState({ partNumber: '', productName: '' });
+
     useEffect(() => {
         loadData();
     }, []);
@@ -477,6 +481,97 @@ export default function OrderRegisterPage() {
         }
     };
 
+    // 품번 수정 모달 열기
+    const openCorrectModal = (order: Order) => {
+        setCorrectingOrder(order);
+        setCorrectForm({ partNumber: order.partNumber, productName: order.productName });
+        setError(null);
+    };
+
+    const handleCorrectPartNumberInput = (pn: string) => {
+        const it = items.find(i => i.partNumber === pn);
+        setCorrectForm(prev => ({ ...prev, partNumber: pn, productName: it ? it.name : prev.productName }));
+    };
+
+    // 품번 정정 저장. 미처리 건은 단순 정정, 출고완료 건은 재고까지 자동 보정
+    // (잘못 나간 품목은 입고로 복원 + 올바른 품목을 동일 창고에서 재출고).
+    const submitCorrectPartNumber = async () => {
+        if (!correctingOrder) return;
+        const newPart = correctForm.partNumber.trim();
+        const newName = correctForm.productName.trim();
+        if (!newPart) {
+            alert('품번을 입력해주세요.');
+            return;
+        }
+        if (newPart === correctingOrder.partNumber.trim() && newName === correctingOrder.productName.trim()) {
+            alert('변경된 내용이 없습니다.');
+            return;
+        }
+
+        const isShipped = correctingOrder.status === '출고완료';
+        const wh = correctingOrder.shippedWarehouse || HQ_NAME;
+        let newItem: Item | undefined;
+        let oldItem: Item | undefined;
+
+        if (isShipped) {
+            newItem = items.find(i => i.partNumber.trim() === newPart && (i.warehouse || HQ_NAME) === wh);
+            if (!newItem) {
+                alert(`정정할 품번 "${newPart}"이(가) "${wh}" 창고의 품목에 없습니다.\n먼저 자재 관리에서 해당 품목을 등록한 후 다시 시도해주세요.`);
+                return;
+            }
+            oldItem = items.find(i => i.partNumber.trim() === correctingOrder.partNumber.trim() && (i.warehouse || HQ_NAME) === wh);
+            if (!confirm(
+                `이미 출고완료된 주문입니다. 품번 정정 시 재고도 함께 보정됩니다.\n\n` +
+                `· ${wh}: ${oldItem ? oldItem.name : correctingOrder.partNumber} 재고 ${correctingOrder.quantity} 입고 복원\n` +
+                `· ${wh}: ${newItem.name} 재고 ${correctingOrder.quantity} 재출고\n\n` +
+                `진행하시겠습니까?`
+            )) return;
+        } else {
+            if (!confirm(`품번을 "${correctingOrder.partNumber}" → "${newPart}"(으)로 수정하시겠습니까?`)) return;
+        }
+
+        setLoading(true);
+        setBusyMsg('품번 수정 처리 중...');
+        setError(null);
+        try {
+            if (isShipped && newItem) {
+                const today = new Date().toISOString().split('T')[0];
+                if (oldItem) {
+                    await addTransaction({
+                        itemId: oldItem.id,
+                        itemName: oldItem.name,
+                        type: 'IN',
+                        quantity: correctingOrder.quantity,
+                        date: today,
+                        warehouse: wh,
+                        remarks: `[품번수정] 오류 출고 재고 복원 (${correctingOrder.partNumber} → ${newPart})`,
+                    });
+                }
+                await addTransaction({
+                    itemId: newItem.id,
+                    itemName: newItem.name,
+                    type: 'OUT',
+                    quantity: correctingOrder.quantity,
+                    date: today,
+                    target: correctingOrder.customerName,
+                    warehouse: wh,
+                    remarks: `[품번수정] 정정 출고 (${correctingOrder.partNumber} → ${newPart})`,
+                });
+            }
+            await updateOrder(correctingOrder.id, { partNumber: newPart, productName: newName });
+            setCorrectingOrder(null);
+            await loadData();
+            setNotice(
+                `품번을 "${correctingOrder.partNumber}" → "${newPart}"(으)로 수정했습니다.` +
+                (isShipped ? ' 재고도 정정 반영되었습니다.' : '')
+            );
+        } catch (err: any) {
+            setError(err.message || '품번 수정 중 오류가 발생했습니다.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const handleDeleteOrder = async (order: Order) => {
         if (!confirm(`주문(${order.customerName} / ${order.productName})을 삭제하시겠습니까?`)) return;
         setLoading(true);
@@ -778,7 +873,10 @@ export default function OrderRegisterPage() {
                                                         </div>
                                                     )}
                                                 </td>
-                                                <td className="px-3 py-3 text-right">
+                                                <td className="px-3 py-3 text-right whitespace-nowrap">
+                                                    <button onClick={() => openCorrectModal(order)} className="p-1.5 text-gray-400 hover:text-blue-600 transition" title="품번 수정">
+                                                        <i className="ri-edit-2-line"></i>
+                                                    </button>
                                                     <button onClick={() => handleDeleteOrder(order)} className="p-1.5 text-gray-300 hover:text-red-500 transition" title="삭제">
                                                         <i className="ri-delete-bin-line"></i>
                                                     </button>
@@ -937,6 +1035,51 @@ export default function OrderRegisterPage() {
                             <button onClick={cancelResolve} className="px-5 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-xl font-semibold transition">취소 (전체 중단)</button>
                             <button onClick={submitResolve} className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold transition shadow-md flex items-center gap-2">
                                 <i className="ri-check-line"></i>입력 완료 · 등록
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* 품번 수정 모달 */}
+            {correctingOrder && (
+                <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+                    <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-8 border border-gray-100">
+                        <h3 className="text-xl font-bold text-gray-800 mb-1">품번 수정</h3>
+                        <p className="text-sm text-gray-500 mb-5">
+                            {correctingOrder.customerName} · 수량 {correctingOrder.quantity}
+                            {correctingOrder.status === '출고완료' && (
+                                <span className="ml-2 text-orange-600 font-semibold">출고완료 건 — 재고도 함께 보정됩니다</span>
+                            )}
+                        </p>
+                        <div className="bg-gray-50 rounded-xl p-4 mb-5 text-sm">
+                            <span className="text-gray-400 mr-2">기존 품번</span>
+                            <span className="font-mono text-gray-700">{correctingOrder.partNumber}</span>
+                            <span className="text-gray-400 mx-2">/</span>
+                            <span className="text-gray-700">{correctingOrder.productName}</span>
+                        </div>
+                        <label className="block text-xs font-bold text-gray-500 mb-1">정정할 품번</label>
+                        <input
+                            list="correct-part-numbers"
+                            type="text"
+                            value={correctForm.partNumber}
+                            onChange={(e) => handleCorrectPartNumberInput(e.target.value)}
+                            className="w-full px-4 py-2.5 bg-gray-50 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4"
+                        />
+                        <datalist id="correct-part-numbers">
+                            {items.map(i => <option key={i.id} value={i.partNumber}>{i.name}</option>)}
+                        </datalist>
+                        <label className="block text-xs font-bold text-gray-500 mb-1">품명</label>
+                        <input
+                            type="text"
+                            value={correctForm.productName}
+                            onChange={(e) => setCorrectForm(prev => ({ ...prev, productName: e.target.value }))}
+                            className="w-full px-4 py-2.5 bg-gray-50 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 mb-6"
+                        />
+                        <div className="flex gap-3 justify-end">
+                            <button onClick={() => setCorrectingOrder(null)} className="px-5 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-xl font-semibold transition">취소</button>
+                            <button onClick={submitCorrectPartNumber} className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold transition shadow-md flex items-center gap-2">
+                                <i className="ri-check-line"></i>수정 저장
                             </button>
                         </div>
                     </div>
