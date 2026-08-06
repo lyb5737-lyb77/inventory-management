@@ -582,6 +582,19 @@ export const addIpRange = async (range: Omit<IpRange, 'id'>): Promise<IpRange> =
     };
 };
 
+export const updateIpRange = async (id: string, updates: Partial<IpRange>): Promise<void> => {
+    const spUpdates: any = {};
+    if (updates.title !== undefined) spUpdates.Title = updates.title;
+    if (updates.device !== undefined) spUpdates.DeviceName = updates.device;
+    if (updates.startIp !== undefined) spUpdates.StartIP = updates.startIp;
+    if (updates.endIp !== undefined) spUpdates.EndIP = updates.endIp;
+    if (updates.gateway !== undefined) spUpdates.Gateway = updates.gateway;
+    if (updates.subnetMask !== undefined) spUpdates.SubnetMask = updates.subnetMask;
+    if (updates.description !== undefined) spUpdates.Description = updates.description;
+
+    await updateListItem(sharePointConfig.listNames.ipRanges, id, spUpdates);
+};
+
 export const deleteIpRange = async (id: string): Promise<void> => {
     await deleteListItem(sharePointConfig.listNames.ipRanges, id);
     // Note: Associated IP Details should be handled (warn user or cascade delete)

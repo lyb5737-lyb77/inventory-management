@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Layout from '../components/Layout';
 import { IpRange, IpDetail } from '../types';
-import { getIpRanges, getIpDetails, addIpRange, deleteIpRange, updateIpDetail, generateIpListInRange } from '../storage';
+import { getIpRanges, getIpDetails, addIpRange, updateIpRange, deleteIpRange, updateIpDetail, generateIpListInRange } from '../storage';
 import { readIpInventoryExcel } from '../services/excelService';
 
 // UI Helper: Status Badge
@@ -28,12 +28,18 @@ export default function IpManagementPage() {
     const [editingDetail, setEditingDetail] = useState<Partial<IpDetail> | null>(null);
 
     // Range Form State
+    const [editingRangeId, setEditingRangeId] = useState<string | null>(null);
     const [newRange, setNewRange] = useState<Partial<IpRange>>({
         device: 'A',
         title: '',
         startIp: '',
         endIp: '',
+        gateway: '',
+        subnetMask: '',
     });
+
+    // Copy feedback state
+    const [copied, setCopied] = useState(false);
 
     useEffect(() => {
         loadData();
@@ -96,7 +102,8 @@ export default function IpManagementPage() {
         const matchedDetails = details.filter(d =>
             d.ipAddress.includes(lowerTerm) ||
             d.user.toLowerCase().includes(lowerTerm) ||
-            d.department.toLowerCase().includes(lowerTerm)
+            d.department.toLowerCase().includes(lowerTerm) ||
+            d.usage.toLowerCase().includes(lowerTerm)
         );
 
         // 2. Search Result Format
@@ -167,15 +174,43 @@ export default function IpManagementPage() {
         }
     };
 
+    const resetRangeForm = () => {
+        setNewRange({ device: 'A', title: '', startIp: '', endIp: '', gateway: '', subnetMask: '' });
+        setEditingRangeId(null);
+    };
+
+    const openAddRangeModal = () => {
+        resetRangeForm();
+        setIsRangeModalOpen(true);
+    };
+
+    const openEditRangeModal = (range: IpRange, e: React.MouseEvent) => {
+        e.stopPropagation();
+        setNewRange({
+            device: range.device,
+            title: range.title,
+            startIp: range.startIp,
+            endIp: range.endIp,
+            gateway: range.gateway || '',
+            subnetMask: range.subnetMask || '',
+        });
+        setEditingRangeId(range.id);
+        setIsRangeModalOpen(true);
+    };
+
     const handleRangeSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
-            await addIpRange(newRange as any);
+            if (editingRangeId) {
+                await updateIpRange(editingRangeId, newRange);
+            } else {
+                await addIpRange(newRange as any);
+            }
             await loadData();
             setIsRangeModalOpen(false);
-            setNewRange({ device: 'A', title: '', startIp: '', endIp: '' });
+            resetRangeForm();
         } catch (error) {
-            alert('대역 추가 실패');
+            alert(editingRangeId ? '대역 수정 실패' : '대역 추가 실패');
         }
     };
 
@@ -191,6 +226,21 @@ export default function IpManagementPage() {
         }
     };
 
+    const handleCopyIpInfo = async () => {
+        if (!editingDetail?.ipAddress) return;
+        const range = ranges.find(r => r.id === editingDetail.rangeId);
+        const lines = [`IP: ${editingDetail.ipAddress}`];
+        if (range?.gateway) lines.push(`Gateway: ${range.gateway}`);
+        if (range?.subnetMask) lines.push(`Subnet Mask: ${range.subnetMask}`);
+        try {
+            await navigator.clipboard.writeText(lines.join('\n'));
+            setCopied(true);
+            setTimeout(() => setCopied(false), 1500);
+        } catch (error) {
+            alert('클립보드 복사에 실패했습니다.');
+        }
+    };
+
     const handleDetailClick = (ipInfo: any) => {
         setEditingDetail({
             id: ipInfo.detailId,
@@ -201,6 +251,7 @@ export default function IpManagementPage() {
             usage: ipInfo.usage,
             status: ipInfo.status,
         });
+        setCopied(false);
         setIsDetailModalOpen(true);
     };
 
@@ -271,7 +322,7 @@ export default function IpManagementPage() {
                                 <i className="ri-file-excel-2-line"></i> 엑셀
                             </label>
                             <button
-                                onClick={() => setIsRangeModalOpen(true)}
+                                onClick={openAddRangeModal}
                                 className="bg-blue-100 hover:bg-blue-200 text-blue-700 text-xs font-bold px-2 py-1.5 rounded-lg transition flex items-center gap-1"
                                 title="대역 추가"
                             >
@@ -301,13 +352,22 @@ export default function IpManagementPage() {
                                                 <div className={`text-xs truncate ${selectedRangeId === range.id ? 'text-blue-200' : 'text-gray-400'}`}>{range.startIp}~</div>
                                             </div>
                                             {selectedRangeId === range.id && (
-                                                <button
-                                                    onClick={(e) => handleDeleteRange(range.id, e)}
-                                                    className="opacity-0 group-hover:opacity-100 text-white/70 hover:text-white transition-opacity px-1"
-                                                    title="대역 삭제"
-                                                >
-                                                    <i className="ri-close-line"></i>
-                                                </button>
+                                                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    <button
+                                                        onClick={(e) => openEditRangeModal(range, e)}
+                                                        className="text-white/70 hover:text-white px-1"
+                                                        title="대역 정보 수정 (게이트웨이/서브넷마스크)"
+                                                    >
+                                                        <i className="ri-pencil-line"></i>
+                                                    </button>
+                                                    <button
+                                                        onClick={(e) => handleDeleteRange(range.id, e)}
+                                                        className="text-white/70 hover:text-white px-1"
+                                                        title="대역 삭제"
+                                                    >
+                                                        <i className="ri-close-line"></i>
+                                                    </button>
+                                                </div>
                                             )}
                                         </div>
                                     ))}
@@ -462,8 +522,8 @@ export default function IpManagementPage() {
                 <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 z-50">
                     <div className="bg-white rounded-2xl w-full max-w-md border border-gray-100 shadow-2xl overflow-hidden">
                         <div className="bg-gray-50 p-5 border-b border-gray-100 flex justify-between items-center">
-                            <h3 className="text-gray-800 font-bold text-lg">IP 대역 추가</h3>
-                            <button onClick={() => setIsRangeModalOpen(false)} className="text-gray-400 hover:text-gray-600 transition">
+                            <h3 className="text-gray-800 font-bold text-lg">{editingRangeId ? 'IP 대역 수정' : 'IP 대역 추가'}</h3>
+                            <button onClick={() => { setIsRangeModalOpen(false); resetRangeForm(); }} className="text-gray-400 hover:text-gray-600 transition">
                                 <i className="ri-close-line text-xl"></i>
                             </button>
                         </div>
@@ -518,8 +578,28 @@ export default function IpManagementPage() {
                                     />
                                 </div>
                             </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-bold text-gray-700 mb-2">게이트웨이</label>
+                                    <input
+                                        className="w-full bg-gray-50 border border-gray-300 rounded-lg px-4 py-2.5 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
+                                        value={newRange.gateway}
+                                        onChange={e => setNewRange({ ...newRange, gateway: e.target.value })}
+                                        placeholder="192.168.1.254"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-bold text-gray-700 mb-2">서브넷마스크</label>
+                                    <input
+                                        className="w-full bg-gray-50 border border-gray-300 rounded-lg px-4 py-2.5 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
+                                        value={newRange.subnetMask}
+                                        onChange={e => setNewRange({ ...newRange, subnetMask: e.target.value })}
+                                        placeholder="255.255.255.0"
+                                    />
+                                </div>
+                            </div>
                             <button className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 rounded-xl shadow-lg mt-2 transition">
-                                대역 추가하기
+                                {editingRangeId ? '수정 완료' : '대역 추가하기'}
                             </button>
                         </form>
                     </div>
@@ -534,7 +614,28 @@ export default function IpManagementPage() {
                             <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center text-white text-3xl mb-3">
                                 <i className="ri-mac-line"></i>
                             </div>
-                            <h3 className="text-white font-bold text-2xl font-mono">{editingDetail.ipAddress}</h3>
+                            <div className="flex items-center gap-2">
+                                <h3 className="text-white font-bold text-2xl font-mono">{editingDetail.ipAddress}</h3>
+                                <button
+                                    type="button"
+                                    onClick={handleCopyIpInfo}
+                                    className="text-white/70 hover:text-white transition p-1"
+                                    title="IP, 게이트웨이, 서브넷마스크 복사"
+                                >
+                                    <i className={copied ? 'ri-check-line' : 'ri-file-copy-line'}></i>
+                                </button>
+                            </div>
+                            {copied && <p className="text-blue-100 text-xs -mt-1">복사되었습니다</p>}
+                            {(() => {
+                                const range = ranges.find(r => r.id === editingDetail.rangeId);
+                                if (!range?.gateway && !range?.subnetMask) return null;
+                                return (
+                                    <div className="text-blue-100 text-xs mt-2 flex gap-3 font-mono">
+                                        {range?.gateway && <span>GW: {range.gateway}</span>}
+                                        {range?.subnetMask && <span>SM: {range.subnetMask}</span>}
+                                    </div>
+                                );
+                            })()}
                             <p className="text-blue-100 text-sm mt-1">IP 상세 정보 수정</p>
                         </div>
                         <form onSubmit={handleDetailSave} className="p-6 space-y-5">
