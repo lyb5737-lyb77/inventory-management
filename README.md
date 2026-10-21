@@ -1,4 +1,9 @@
-# BIT Management (재고/임대 관리 시스템)
+# BIT Management (재고/주문/임대/IP·장비 관리 시스템)
+
+## 문서
+
+- [HANDOVER.md](HANDOVER.md) — 인수인계 문서 (구조, 메뉴별 동작, SharePoint 리스트, 알려진 이슈)
+- [AUTH_GUIDE.md](AUTH_GUIDE.md) — Microsoft 로그인 방식을 다른 프로젝트에 이식하는 가이드
 
 ## 시작하기
 
@@ -6,8 +11,11 @@
 # 의존성 설치
 npm install
 
-# 개발 서버 실행
+# 개발 서버 실행 (http://localhost:5173/inventory-management/)
 npm run dev
+
+# 타입 체크 (변경 후 반드시 확인)
+npx tsc --noEmit
 ```
 
 ## 빌드 및 배포 (중요)
@@ -20,11 +28,15 @@ npm run dev
 
 **올바른 배포 Workflow:**
 1. 코드 수정 완료
-2. `git add .` (수정된 파일 스테이징)
+2. `git add <수정한 파일>` (수정된 파일 스테이징. 루트의 고객정보 엑셀이 섞이지 않도록 파일을 지정해서 추가)
 3. `git commit -m "수정 내용 메시지"` (커밋)
 4. `git push origin main` (원격 저장소 main 브랜치로 푸시)
 5. GitHub 서버 측에서 자동으로 빌드 및 배포 대기 (1~2분 소요)
 6. 변경사항 확인
+
+**참고**
+- 로컬 `npm run build`는 PC 사양에 따라 메모리 부족으로 중간에 종료될 수 있습니다. `npx tsc --noEmit`이 통과하면 코드는 정상이며, 실제 빌드는 GitHub Actions에서 수행됩니다.
+- push 시 403 오류가 나면 Windows에 저장된 GitHub 로그인이 권한 없는 계정으로 되어 있는 경우입니다. 저장소 권한이 있는 계정으로 다시 로그인하세요.
 
 **만약 수동 배포가 꼭 필요한 경우:**
 간혹 로컬 환경에서 `npm run deploy` 실행 시 `gh-pages` 빌드 오류(Exit code: 1)가 날 수 있습니다. 이럴 경우에만 아래의 절차로 강제 수동 배포를 진행할 수 있지만, 기본적으로는 **Git Push를 통한 환경**을 권장합니다.
