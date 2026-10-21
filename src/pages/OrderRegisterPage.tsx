@@ -8,6 +8,7 @@ import {
 } from '../storage';
 import { readBitmallOrderExcel, exportOrdersExcel, ParsedOrderRow } from '../services/excelService';
 import { sendOutboundEmail } from '../services/email';
+import { todayKst } from '../utils/date';
 
 const HQ_NAME = '비트본사';
 
@@ -40,7 +41,7 @@ export default function OrderRegisterPage() {
     const [mode, setMode] = useState<'upload' | 'manual'>('upload');
     const [statusFilter, setStatusFilter] = useState<'전체' | '미처리' | '출고완료'>('전체');
     const [search, setSearch] = useState('');
-    const [exportMonth, setExportMonth] = useState<string>(new Date().toISOString().slice(0, 7)); // YYYY-MM
+    const [exportMonth, setExportMonth] = useState<string>(todayKst().slice(0, 7)); // YYYY-MM
 
     // 업로드 미리보기
     const [parsedRows, setParsedRows] = useState<ParsedOrderRow[]>([]);
@@ -359,7 +360,7 @@ export default function OrderRegisterPage() {
         setError(null);
         try {
             await addOrder({
-                orderDate: new Date().toISOString().split('T')[0],
+                orderDate: todayKst(),
                 customerCode: manualForm.customerCode,
                 customerName: manualForm.customerName,
                 bizNumber: '',
@@ -443,7 +444,7 @@ export default function OrderRegisterPage() {
                 itemName: item.name,
                 type: 'OUT',
                 quantity: order.quantity,
-                date: new Date().toISOString().split('T')[0],
+                date: todayKst(),
                 target: order.customerName,
                 warehouse: warehouse,
                 remarks: `[비트몰주문]${isHq ? '(본사출고)' : ''} ${shipRemarks}`.trim(),
@@ -535,7 +536,7 @@ export default function OrderRegisterPage() {
         setError(null);
         try {
             if (isShipped && newItem) {
-                const today = new Date().toISOString().split('T')[0];
+                const today = todayKst();
                 if (oldItem) {
                     await addTransaction({
                         itemId: oldItem.id,
@@ -950,7 +951,7 @@ export default function OrderRegisterPage() {
                             <div className="flex"><span className="w-20 shrink-0 text-gray-400">품명</span><span className="text-gray-800">{pendingShip.order.productName || pendingShip.location.item.name}</span></div>
                             <div className="flex"><span className="w-20 shrink-0 text-gray-400">품번</span><span className="text-gray-800 font-mono">{pendingShip.order.partNumber}</span></div>
                             <div className="flex"><span className="w-20 shrink-0 text-gray-400">수량</span><span className="text-gray-800">{pendingShip.order.quantity} <span className="text-gray-400">(현재고 {pendingShip.location.item.quantity})</span></span></div>
-                            <div className="flex"><span className="w-20 shrink-0 text-gray-400">금일날짜</span><span className="text-gray-800">{new Date().toISOString().split('T')[0]}</span></div>
+                            <div className="flex"><span className="w-20 shrink-0 text-gray-400">금일날짜</span><span className="text-gray-800">{todayKst()}</span></div>
                         </div>
                         <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6 text-center">
                             <p className="text-blue-700 font-bold text-lg">창고 출고바랍니다.</p>

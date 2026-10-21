@@ -5,6 +5,7 @@ import Layout from '../components/Layout';
 import { Item, Warehouse, Customer } from '../types';
 import { getItems, getWarehouses, getCustomers, addTransaction } from '../storage';
 import { sendOutboundEmail } from '../services/email';
+import { todayKst } from '../utils/date';
 
 interface SelectedItem {
     itemId: string;
@@ -169,7 +170,7 @@ export default function OutboundRequestPage() {
                     itemName: item.name,
                     type: 'OUT',
                     quantity: quantity,
-                    date: new Date().toISOString().split('T')[0],
+                    date: todayKst(),
                     target: selectedCustomer.name,
                     warehouse: selectedWarehouse.name,
                     remarks: `[출고신청] ${formData.remarks}`,

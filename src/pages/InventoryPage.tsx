@@ -3,6 +3,7 @@ import Layout from '../components/Layout';
 import { Item, Transaction, Warehouse } from '../types';
 import { getItems, addTransaction, getTransactionsByDateRange, getWarehouses } from '../storage';
 import * as XLSX from 'xlsx';
+import { todayKst } from '../utils/date';
 
 export default function InventoryPage() {
     const [items, setItems] = useState<Item[]>([]);
@@ -15,7 +16,7 @@ export default function InventoryPage() {
         warehouse: '',
         itemId: '',
         quantity: 0,
-        date: new Date().toISOString().split('T')[0],
+        date: todayKst(),
         remarks: '',
     });
 
@@ -25,7 +26,7 @@ export default function InventoryPage() {
         itemId: '',
         quantity: 0,
         target: '',
-        date: new Date().toISOString().split('T')[0],
+        date: todayKst(),
         remarks: '',
     });
 
@@ -83,7 +84,7 @@ export default function InventoryPage() {
             warehouse: '',
             itemId: '',
             quantity: 0,
-            date: new Date().toISOString().split('T')[0],
+            date: todayKst(),
             remarks: '',
         });
         await loadData();
@@ -115,7 +116,7 @@ export default function InventoryPage() {
             itemId: '',
             quantity: 0,
             target: '',
-            date: new Date().toISOString().split('T')[0],
+            date: todayKst(),
             remarks: '',
         });
         await loadData();
@@ -126,8 +127,11 @@ export default function InventoryPage() {
         e.preventDefault();
         let results = await getTransactionsByDateRange(searchForm.startDate, searchForm.endDate);
 
-        // 날짜 내림차순 정렬 (최신순)
-        results.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        // 날짜 내림차순, 같은 날짜는 나중에 입력된 건(id가 큰 건)이 위로
+        results.sort((a, b) =>
+            new Date(b.date).getTime() - new Date(a.date).getTime() ||
+            Number(b.id) - Number(a.id)
+        );
 
         // 검색어 필터링
         if (searchType !== 'all' && searchKeyword) {
