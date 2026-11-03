@@ -41,7 +41,7 @@ export default function OrderRegisterPage() {
     const [mode, setMode] = useState<'upload' | 'manual'>('upload');
     const [statusFilter, setStatusFilter] = useState<'전체' | '미처리' | '출고완료'>('전체');
     const [search, setSearch] = useState('');
-    const [exportMonth, setExportMonth] = useState<string>(todayKst().slice(0, 7)); // YYYY-MM
+    const [viewMonth, setViewMonth] = useState<string>(todayKst().slice(0, 7)); // YYYY-MM, 목록 표시와 월 다운로드 공용
 
     // 업로드 미리보기
     const [parsedRows, setParsedRows] = useState<ParsedOrderRow[]>([]);
@@ -300,6 +300,9 @@ export default function OrderRegisterPage() {
 
             setParsedRows([]);
             setResolveState(null);
+            // 등록한 주문이 현재 보는 달이 아니면 목록에서 안 보이므로 가장 최근 주문일의 달로 전환
+            const latestDate = rows.map(r => r.orderDate).filter(d => /^\d{4}-\d{2}/.test(d)).sort().pop();
+            if (latestDate) setViewMonth(latestDate.slice(0, 7));
             await loadData();
             setNotice(
                 `주문 ${rows.length}건 등록 완료.` +
@@ -378,6 +381,7 @@ export default function OrderRegisterPage() {
                 remarks: '',
             });
             setManualForm(emptyManual);
+            setViewMonth(todayKst().slice(0, 7));
             await loadData();
             setNotice('주문이 등록되었습니다.');
         } catch (err: any) {
@@ -465,16 +469,20 @@ export default function OrderRegisterPage() {
     };
 
     const handleExportMonth = async () => {
-        const count = orders.filter(o => (o.orderDate || '').startsWith(exportMonth)).length;
+        if (!viewMonth) {
+            alert('다운로드할 월을 선택해주세요.');
+            return;
+        }
+        const count = orders.filter(o => (o.orderDate || '').startsWith(viewMonth)).length;
         if (count === 0) {
-            alert(`${exportMonth} 주문 내역이 없습니다.`);
+            alert(`${viewMonth} 주문 내역이 없습니다.`);
             return;
         }
         setLoading(true);
         setBusyMsg('엑셀 양식 생성 중...');
         setError(null);
         try {
-            await exportOrdersExcel(orders, exportMonth, items);
+            await exportOrdersExcel(orders, viewMonth, items);
         } catch (err: any) {
             setError(err.message || '엑셀 다운로드 실패');
         } finally {
@@ -591,6 +599,7 @@ export default function OrderRegisterPage() {
     const filteredOrders = useMemo(() => {
         const term = search.trim().toLowerCase();
         return orders.filter(o => {
+            if (!(o.orderDate || '').startsWith(viewMonth)) return false;
             if (statusFilter !== '전체' && o.status !== statusFilter) return false;
             if (!term) return true;
             return (
@@ -600,7 +609,7 @@ export default function OrderRegisterPage() {
                 o.productName.toLowerCase().includes(term)
             );
         });
-    }, [orders, statusFilter, search]);
+    }, [orders, viewMonth, statusFilter, search]);
 
     const filteredCustomers = customers.filter(c =>
         c.name.toLowerCase().includes(customerSearchTerm.toLowerCase()) ||
@@ -809,7 +818,7 @@ export default function OrderRegisterPage() {
                                 <i className="ri-refresh-line"></i>
                             </button>
                             <div className="flex items-center gap-1 border-l border-gray-200 pl-2 ml-1">
-                                <input type="month" value={exportMonth} onChange={(e) => setExportMonth(e.target.value)}
+                                <input type="month" value={viewMonth} onChange={(e) => setViewMonth(e.target.value)}
                                     className="px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
                                 <button onClick={handleExportMonth} className="px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-bold transition shadow-sm flex items-center gap-1" title="해당 월 주문을 비트몰 양식으로 다운로드">
                                     <i className="ri-file-excel-2-line"></i>월 다운로드
