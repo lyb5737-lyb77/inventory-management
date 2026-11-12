@@ -28,8 +28,6 @@ export const sharePointConfig = {
         rentals: 'RentalContracts',
         warehouses: 'Warehouses',
         customers: 'Customers',
-        ipRanges: 'IpRanges',
-        ipDetails: 'IpDetails',
         equipments: 'Equipments',
         equipmentLogs: 'EquipmentLogs',
         userPermissions: 'UserPermissions',

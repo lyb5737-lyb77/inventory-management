@@ -9,7 +9,6 @@ import InventoryPage from './pages/InventoryPage';
 import RentalPage from './pages/RentalPage';
 import OrderRegisterPage from './pages/OrderRegisterPage';
 import OutboundRequestPage from './pages/OutboundRequestPage';
-import IpManagementPage from './pages/IpManagementPage';
 import EquipmentPage from './pages/EquipmentPage';
 import EquipmentViewerPage from './pages/EquipmentViewerPage';
 
@@ -29,7 +28,6 @@ function App() {
                             <Route path="/order-register" element={<OrderRegisterPage />} />
                             <Route path="/rental" element={<RentalPage />} />
                             <Route path="/outbound-request" element={<OutboundRequestPage />} />
-                            <Route path="/ip-management" element={<IpManagementPage />} />
                             <Route path="/equipment" element={<EquipmentPage />} />
                             <Route path="/equipment/viewer/:id" element={<EquipmentViewerPage />} />
                         </Routes >

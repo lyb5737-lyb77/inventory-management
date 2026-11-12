@@ -14,8 +14,8 @@ export interface MenuDef {
     subDesc: string;
     icon: string;
     colorClass: string;
-    path: string;
-    externalUrl?: string; // 지정하면 path 대신 새 탭으로 외부 주소를 연다
+    path?: string;        // 내부 라우트. externalUrl이 있으면 생략
+    externalUrl?: string; // 지정하면 새 탭으로 외부 주소를 연다
 }
 
 export const MENUS: MenuDef[] = [
@@ -71,8 +71,7 @@ export const MENUS: MenuDef[] = [
         subDesc: 'MS 계정으로 자동 로그인, 새 탭에서 열림',
         icon: 'ri-shield-check-line',
         colorClass: 'from-cyan-500 to-cyan-600',
-        path: '/ip-management',
-        externalUrl: 'https://10.10.10.133:8765',
+        externalUrl: 'https://10.10.10.133:8765/map',
     },
     {
         key: 'equipment',

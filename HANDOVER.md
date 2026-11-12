@@ -117,8 +117,7 @@ git push origin main
 | `order-register` | `/order-register` | [OrderRegisterPage.tsx](src/pages/OrderRegisterPage.tsx) | 비트몰 주문 등록(엑셀 업로드/개별 입력), 출고 처리, 품번 수정, 월 다운로드 |
 | `outbound-request` | `/outbound-request` | [OutboundRequestPage.tsx](src/pages/OutboundRequestPage.tsx) | 창고 담당자에게 출고 요청 이메일 발송 + 거래 기록 |
 | `rental` | `/rental` | [RentalPage.tsx](src/pages/RentalPage.tsx) | 임대 현황/계약 관리, 엑셀 업로드/다운로드 |
-| `ip-management` | 외부 링크 | (홈 카드) | **IP 관리통제(NAC)**. 홈 카드를 누르면 `https://10.10.10.133:8765`(NAC 관리 콘솔)가 새 탭으로 열림. 주소는 `menus.ts`의 `externalUrl`. 같은 Microsoft 테넌트로 로그인하므로 브라우저에 로그인돼 있으면 자동 로그인됨 |
-| (구 IP 자산 관리) | `/ip-management` | [IpManagementPage.tsx](src/pages/IpManagementPage.tsx) | 메뉴 카드에서는 빠졌지만 주소(`/#/ip-management`)로는 접근 가능. SharePoint `IpRanges`/`IpDetails` 기반 |
+| `ip-management` | 외부 링크 | (홈 카드) | **IP 관리통제(NAC)**. 홈 카드를 누르면 `https://10.10.10.133:8765/map`(NAC 관리 콘솔)이 새 탭으로 열림. 같은 Microsoft 테넌트로 로그인하므로 브라우저에 로그인돼 있으면 자동 로그인됨 |
 | `equipment` | `/equipment` | [EquipmentPage.tsx](src/pages/EquipmentPage.tsx) | 업무용 장비 관리, 변경 이력, QR 코드 |
 | (장비조회) | `/equipment/viewer/:id` | [EquipmentViewerPage.tsx](src/pages/EquipmentViewerPage.tsx) | QR 스캔 시 보이는 장비 상세 (읽기 전용) |
 | (로그인) | — | [LoginPage.tsx](src/pages/LoginPage.tsx) | 비로그인 시 표시 |
@@ -152,8 +151,6 @@ UI 페이지
 | rentals | `RentalContracts` | 임대 계약 |
 | warehouses | `Warehouses` | 창고 |
 | customers | `Customers` | 출고처(거래처) |
-| ipRanges | `IpRanges` | IP 대역 (`Gateway`, `SubnetMask` 컬럼 포함) |
-| ipDetails | `IpDetails` | IP별 상세(사용자/부서/용도) |
 | equipments | `Equipments` | 업무용 장비 |
 | equipmentLogs | `EquipmentLogs` | 장비 변경 이력 |
 | userPermissions | `UserPermissions` | 사용자 권한 |
@@ -231,13 +228,10 @@ UI 페이지
 - 홈 화면에서 계약 종료 3개월 이내 건을 alert로 알림.
   - ⚠️ **주의/버그 소지**: 이 만료 알림은 `localStorage`의 `rental_data`를 읽음(HomePage.tsx) — SharePoint 데이터가 아님. 또한 존재하지 않는 `dong` 필드를 참조함. 실제로는 동작하지 않을 가능성이 높으니 점검 필요.
 
-### IP 자산 관리 (IP Management)
-- IP 대역(`IpRanges`)을 등록하면 시작~종료 IP 사이를 자동 펼쳐(`generateIpListInRange`) 각 IP의 사용 현황(`IpDetails`)을 관리.
-- 대역마다 **게이트웨이/서브넷마스크**를 입력·수정할 수 있고(선택한 대역의 연필 버튼), IP 상세 정보에 표시됨.
-- IP 상세 정보의 **복사 버튼**은 IP·게이트웨이·서브넷마스크를 한 번에 클립보드로 복사함.
-- 빠른 검색은 IP·사용자·부서·**용도**를 대상으로 함.
-- 엑셀로 IP 사용 현황 일괄 업로드 가능. (엑셀 다운로드 기능은 없음)
-- 실제 네트워크 사용 여부(핑/ARP)는 브라우저에서 확인할 수 없음. 별도 스캐너로 확인한 결과를 엑셀로 업로드하는 방식이 현실적임.
+### IP 관리통제 (NAC)
+- 이 앱에는 IP 관리 화면이 없고, 홈 카드가 사내 NAC 관리 콘솔(`https://10.10.10.133:8765/map`)을 새 탭으로 여는 링크 역할만 함. 주소는 `menus.ts`의 `externalUrl`에서 바꿈.
+- NAC는 이 앱과 같은 Microsoft 테넌트로 로그인하므로, 브라우저에 Microsoft 로그인이 되어 있으면 재로그인 없이 들어감.
+- 예전의 "IP 자산 관리" 페이지(SharePoint `IpRanges`/`IpDetails` 기반)는 코드를 삭제함. 필요하면 git 이력에서 복구할 수 있고, SharePoint의 두 리스트 데이터는 그대로 남아 있음.
 
 ### 장비 관리 (Equipment)
 - 장비 등록/수정/삭제 + 변경 이력(`EquipmentLogs`) 기록.
@@ -296,7 +290,7 @@ BIT_management/
 ## 9. 인수자가 가장 먼저 확인할 것 (체크리스트)
 
 1. **Microsoft 365 / Azure AD 접근권**: 앱 등록(App Registration, clientId `3ca657f9-...`)과 테넌트(`32b8ffa5-...`) 관리 권한 확보. clientId/테넌트는 [authConfig.ts](src/authConfig.ts)에 있음.
-2. **SharePoint 사이트 접근권**: `bitkr.sharepoint.com/sites/bit.kr` 및 위 13개 리스트의 편집 권한.
+2. **SharePoint 사이트 접근권**: `bitkr.sharepoint.com/sites/bit.kr` 및 위 11개 리스트의 편집 권한.
 3. **GitHub 저장소 접근권**: push 권한 + GitHub Pages/Actions 설정 권한.
 4. **부트스트랩 관리자 계정** 인수: `lyb77@bit.kr`, `show@bit.kr` (필요 시 본인 계정으로 교체 후 배포).
 5. **EmailJS 계정**: 출고 메일용. 기본 키가 `settings.ts`에 하드코딩되어 있으니 계정 소유권을 확인하고, Gmail 연결이 끊기면 재연결.
