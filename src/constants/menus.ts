@@ -15,6 +15,7 @@ export interface MenuDef {
     icon: string;
     colorClass: string;
     path: string;
+    externalUrl?: string; // 지정하면 path 대신 새 탭으로 외부 주소를 연다
 }
 
 export const MENUS: MenuDef[] = [
@@ -65,12 +66,13 @@ export const MENUS: MenuDef[] = [
     },
     {
         key: 'ip-management',
-        title: 'IP 자산 관리',
-        desc: 'IP 대역 및 사용 현황 관리',
-        subDesc: 'IP 할당, 사용자 검색, 대역 관리',
-        icon: 'ri-computer-line',
+        title: 'IP 관리통제(NAC)',
+        desc: '사내 IP 사용 통제 (NAC 관리 콘솔)',
+        subDesc: 'MS 계정으로 자동 로그인, 새 탭에서 열림',
+        icon: 'ri-shield-check-line',
         colorClass: 'from-cyan-500 to-cyan-600',
         path: '/ip-management',
+        externalUrl: 'https://10.10.10.133:8765',
     },
     {
         key: 'equipment',

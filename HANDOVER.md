@@ -117,7 +117,8 @@ git push origin main
 | `order-register` | `/order-register` | [OrderRegisterPage.tsx](src/pages/OrderRegisterPage.tsx) | 비트몰 주문 등록(엑셀 업로드/개별 입력), 출고 처리, 품번 수정, 월 다운로드 |
 | `outbound-request` | `/outbound-request` | [OutboundRequestPage.tsx](src/pages/OutboundRequestPage.tsx) | 창고 담당자에게 출고 요청 이메일 발송 + 거래 기록 |
 | `rental` | `/rental` | [RentalPage.tsx](src/pages/RentalPage.tsx) | 임대 현황/계약 관리, 엑셀 업로드/다운로드 |
-| `ip-management` | `/ip-management` | [IpManagementPage.tsx](src/pages/IpManagementPage.tsx) | IP 대역(게이트웨이/서브넷마스크 포함) 및 IP별 사용 현황 관리 |
+| `ip-management` | 외부 링크 | (홈 카드) | **IP 관리통제(NAC)**. 홈 카드를 누르면 `https://10.10.10.133:8765`(NAC 관리 콘솔)가 새 탭으로 열림. 주소는 `menus.ts`의 `externalUrl`. 같은 Microsoft 테넌트로 로그인하므로 브라우저에 로그인돼 있으면 자동 로그인됨 |
+| (구 IP 자산 관리) | `/ip-management` | [IpManagementPage.tsx](src/pages/IpManagementPage.tsx) | 메뉴 카드에서는 빠졌지만 주소(`/#/ip-management`)로는 접근 가능. SharePoint `IpRanges`/`IpDetails` 기반 |
 | `equipment` | `/equipment` | [EquipmentPage.tsx](src/pages/EquipmentPage.tsx) | 업무용 장비 관리, 변경 이력, QR 코드 |
 | (장비조회) | `/equipment/viewer/:id` | [EquipmentViewerPage.tsx](src/pages/EquipmentViewerPage.tsx) | QR 스캔 시 보이는 장비 상세 (읽기 전용) |
 | (로그인) | — | [LoginPage.tsx](src/pages/LoginPage.tsx) | 비로그인 시 표시 |

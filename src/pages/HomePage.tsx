@@ -75,7 +75,9 @@ export default function HomePage() {
                 {visibleCards.map((card, index) => (
                     <div
                         key={index}
-                        onClick={() => navigate(card.path)}
+                        onClick={() => card.externalUrl
+                            ? window.open(card.externalUrl, '_blank', 'noopener,noreferrer')
+                            : navigate(card.path)}
                         className="group bg-white rounded-[20px] p-[30px] border border-gray-100 shadow-[0_10px_25px_-5px_rgba(0,0,0,0.05),0_8px_10px_-6px_rgba(0,0,0,0.01)] relative overflow-hidden cursor-pointer transition-all hover:-translate-y-1 hover:shadow-xl hover:border-blue-200"
                     >
                         <div className={`absolute top-0 left-0 w-full h-[6px] bg-gradient-to-r ${card.colorClass}`}></div>
@@ -90,7 +92,7 @@ export default function HomePage() {
                         <p className="text-gray-400 text-sm">{card.subDesc}</p>
 
                         <div className="absolute bottom-4 right-4 text-gray-300 opacity-0 group-hover:opacity-100 transition-all transform translate-x-4 group-hover:translate-x-0">
-                            <i className="ri-arrow-right-line text-2xl"></i>
+                            <i className={`${card.externalUrl ? 'ri-external-link-line' : 'ri-arrow-right-line'} text-2xl`}></i>
                         </div>
                     </div>
                 ))}
