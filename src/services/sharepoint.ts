@@ -58,7 +58,6 @@ export const createListItem = async <T>(listName: string, data: any): Promise<T>
         const sId = await getSiteId();
 
         console.log('Creating list item in:', listName);
-        console.log('Data to be sent:', data);
 
         const response = await client
             .api(`/sites/${sId}/lists/${listName}/items`)
@@ -66,7 +65,6 @@ export const createListItem = async <T>(listName: string, data: any): Promise<T>
                 fields: data,
             });
 
-        console.log('Create response:', response);
         return response.fields;
     } catch (error: any) {
         console.error(`Error creating list item in ${listName}:`, error);
