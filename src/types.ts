@@ -120,3 +120,21 @@ export interface EquipmentLog {
     newValue: string;         // 새값
     remarks: string;          // 비고
 }
+
+// 업무 사이트 계정 (SiteAccount) 인터페이스 — 비밀번호·보안 메모는 암호문으로만 보관
+export interface SiteAccount {
+    id: string;
+    title: string;             // 서비스명
+    category: string;          // 카테고리
+    description: string;       // 내용
+    url: string;               // 접근 URL
+    loginId: string;           // ID
+    passwordEnc: string;       // 비밀번호 암호문
+    secretNoteEnc: string;     // 보안 메모 암호문 (2단계 인증·보안 질문 등)
+    owner: string;             // 담당자 이메일
+    viewers: string[];         // 볼 수 있는 사용자 이메일
+    rotationDays: number;      // 비밀번호 변경 주기(일)
+    passwordChangedAt: string; // 비밀번호 변경일 (YYYY-MM-DD)
+    status: '사용' | '중지';
+    updatedBy: string;         // 마지막 수정자 이메일
+}

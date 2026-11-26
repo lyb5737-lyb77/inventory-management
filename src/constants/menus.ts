@@ -5,7 +5,8 @@ export type MenuKey =
     | 'outbound-request'
     | 'rental'
     | 'ip-management'
-    | 'equipment';
+    | 'equipment'
+    | 'account-vault';
 
 export interface MenuDef {
     key: MenuKey;
@@ -81,6 +82,15 @@ export const MENUS: MenuDef[] = [
         icon: 'ri-macbook-line',
         colorClass: 'from-indigo-500 to-indigo-600',
         path: '/equipment',
+    },
+    {
+        key: 'account-vault',
+        title: '업무 계정 관리',
+        desc: '업무용 사이트 계정 보관 및 공유',
+        subDesc: '접근 URL, ID, 비밀번호(암호화 저장), 공유 대상',
+        icon: 'ri-lock-password-line',
+        colorClass: 'from-slate-600 to-slate-700',
+        path: '/account-vault',
     },
 ];
 

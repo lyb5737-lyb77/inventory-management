@@ -1,4 +1,4 @@
-import { Item, Transaction, ProductGroup, Rental, Warehouse, Customer, Equipment, EquipmentLog, Order } from './types';
+import { Item, Transaction, ProductGroup, Rental, Warehouse, Customer, Equipment, EquipmentLog, Order, SiteAccount } from './types';
 import { getListItems, createListItem, updateListItem, deleteListItem } from './services/sharepoint';
 import { sharePointConfig } from './authConfig';
 
@@ -738,4 +738,92 @@ export const updateOrder = async (id: string, updates: Partial<Order>): Promise<
 
 export const deleteOrder = async (id: string): Promise<void> => {
     await deleteListItem(sharePointConfig.listNames.orders, id);
+};
+
+// 업무 사이트 계정 관리 — 비밀번호·보안 메모는 암호문 그대로 저장·조회 (복호화는 화면에서 vaultCrypto로)
+// 조회 실패를 빈 목록으로 숨기지 않고 그대로 던져, 리스트 미생성·권한 없음을 화면에 알린다
+interface SharePointSiteAccount {
+    id: string;
+    Title: string;
+    Category: string;
+    Description: string;
+    Url: string;
+    LoginId: string;
+    PasswordEnc: string;
+    SecretNoteEnc: string;
+    Owner: string;
+    Viewers: string;
+    RotationDays: string;
+    PasswordChangedAt: string;
+    Status: string;
+    UpdatedBy: string;
+}
+
+const parseEmailList = (csv: string | undefined): string[] =>
+    (csv || '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+
+const mapSpSiteAccount = (sp: SharePointSiteAccount): SiteAccount => ({
+    id: sp.id,
+    title: sp.Title || '',
+    category: sp.Category || '',
+    description: sp.Description || '',
+    url: sp.Url || '',
+    loginId: sp.LoginId || '',
+    passwordEnc: sp.PasswordEnc || '',
+    secretNoteEnc: sp.SecretNoteEnc || '',
+    owner: (sp.Owner || '').trim().toLowerCase(),
+    viewers: parseEmailList(sp.Viewers),
+    rotationDays: parseInt(sp.RotationDays) || 0,
+    passwordChangedAt: sp.PasswordChangedAt || '',
+    status: sp.Status === '중지' ? '중지' : '사용',
+    updatedBy: sp.UpdatedBy || '',
+});
+
+const toSpSiteAccount = (a: Omit<SiteAccount, 'id'>) => ({
+    Title: a.title,
+    Category: a.category,
+    Description: a.description,
+    Url: a.url,
+    LoginId: a.loginId,
+    PasswordEnc: a.passwordEnc,
+    SecretNoteEnc: a.secretNoteEnc,
+    Owner: a.owner,
+    Viewers: a.viewers.join(','),
+    RotationDays: String(a.rotationDays),
+    PasswordChangedAt: a.passwordChangedAt,
+    Status: a.status,
+    UpdatedBy: a.updatedBy,
+});
+
+export const getSiteAccounts = async (): Promise<SiteAccount[]> => {
+    const spItems = await getListItems<SharePointSiteAccount>(sharePointConfig.listNames.siteAccounts);
+    return spItems.map(mapSpSiteAccount);
+};
+
+export const addSiteAccount = async (account: Omit<SiteAccount, 'id'>): Promise<void> => {
+    await createListItem(sharePointConfig.listNames.siteAccounts, toSpSiteAccount(account));
+};
+
+export const updateSiteAccount = async (id: string, account: Omit<SiteAccount, 'id'>): Promise<void> => {
+    await updateListItem(sharePointConfig.listNames.siteAccounts, id, toSpSiteAccount(account));
+};
+
+export const deleteSiteAccount = async (id: string): Promise<void> => {
+    await deleteListItem(sharePointConfig.listNames.siteAccounts, id);
+};
+
+// 암호화 키 (SiteAccountKeys 리스트, Title = 키 버전)
+interface SharePointVaultKey {
+    id: string;
+    Title: string;
+    KeyValue: string;
+}
+
+export const getVaultKeyValue = async (version: string): Promise<string | null> => {
+    const items = await getListItems<SharePointVaultKey>(sharePointConfig.listNames.siteAccountKeys);
+    return items.find(i => i.Title === version)?.KeyValue || null;
+};
+
+export const createVaultKeyValue = async (version: string, keyValue: string): Promise<void> => {
+    await createListItem(sharePointConfig.listNames.siteAccountKeys, { Title: version, KeyValue: keyValue });
 };

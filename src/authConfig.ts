@@ -33,6 +33,8 @@ export const sharePointConfig = {
         userPermissions: 'UserPermissions',
         orders: 'Orders',
         appSettings: 'AppSettings',
+        siteAccounts: 'SiteAccounts',
+        siteAccountKeys: 'SiteAccountKeys',
     },
 };
 

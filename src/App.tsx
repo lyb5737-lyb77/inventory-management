@@ -11,6 +11,7 @@ import OrderRegisterPage from './pages/OrderRegisterPage';
 import OutboundRequestPage from './pages/OutboundRequestPage';
 import EquipmentPage from './pages/EquipmentPage';
 import EquipmentViewerPage from './pages/EquipmentViewerPage';
+import AccountVaultPage from './pages/AccountVaultPage';
 
 // Initialize MSAL
 // await msalInstance.initialize(); // Moved to main.tsx
@@ -30,6 +31,7 @@ function App() {
                             <Route path="/outbound-request" element={<OutboundRequestPage />} />
                             <Route path="/equipment" element={<EquipmentPage />} />
                             <Route path="/equipment/viewer/:id" element={<EquipmentViewerPage />} />
+                            <Route path="/account-vault" element={<AccountVaultPage />} />
                         </Routes >
                     </AuthProvider>
                 </AuthenticatedTemplate >
