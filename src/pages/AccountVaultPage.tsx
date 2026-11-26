@@ -11,7 +11,7 @@ import { useAuth } from '../auth/AuthContext';
 import { usePermission } from '../auth/usePermission';
 import { todayKst } from '../utils/date';
 
-const CATEGORIES = ['관공서', '금융', '거래처', 'SaaS', '내부시스템', '기타'];
+const CATEGORIES = ['관공서', 'IT서비스', '거래처', '솔루션', '라이센스', '내부시스템', '기타'];
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const REVEAL_MS = 30_000;
 const DUE_SOON_DAYS = 14;
