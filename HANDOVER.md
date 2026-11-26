@@ -119,6 +119,7 @@ git push origin main
 | `rental` | `/rental` | [RentalPage.tsx](src/pages/RentalPage.tsx) | 임대 현황/계약 관리, 엑셀 업로드/다운로드 |
 | `ip-management` | 외부 링크 | (홈 카드) | **IP 관리통제(NAC)**. 홈 카드를 누르면 `https://10.10.10.133:8765/map`(NAC 관리 콘솔)이 새 탭으로 열림. 같은 Microsoft 테넌트로 로그인하므로 브라우저에 로그인돼 있으면 자동 로그인됨 |
 | `equipment` | `/equipment` | [EquipmentPage.tsx](src/pages/EquipmentPage.tsx) | 업무용 장비 관리, 변경 이력, QR 코드 |
+| `account-vault` | `/account-vault` | [AccountVaultPage.tsx](src/pages/AccountVaultPage.tsx) | 업무 사이트 계정(ID·비밀번호) 보관·공유. 비밀번호는 암호문으로 저장. 이 페이지만 진입 시 메뉴 권한을 확인함 |
 | (장비조회) | `/equipment/viewer/:id` | [EquipmentViewerPage.tsx](src/pages/EquipmentViewerPage.tsx) | QR 스캔 시 보이는 장비 상세 (읽기 전용) |
 | (로그인) | — | [LoginPage.tsx](src/pages/LoginPage.tsx) | 비로그인 시 표시 |
 
@@ -156,10 +157,13 @@ UI 페이지
 | userPermissions | `UserPermissions` | 사용자 권한 |
 | orders | `Orders` | 비트몰 주문 내역 |
 | appSettings | `AppSettings` | 앱 설정(현재는 메일 발송 설정을 JSON으로 저장) |
+| siteAccounts | `SiteAccounts` | 업무 사이트 계정 (비밀번호·보안 메모는 암호문) |
+| siteAccountKeys | `SiteAccountKeys` | 업무 계정 암호화 키 (⚠️ 멤버만 읽기, 오프라인 백업 필수) |
 
 **리스트별 컬럼 메모**
 - `Orders` — Title(품번), OrderDate, CustomerCode, CustomerName, BizNumber, PartNumber, ProductName, Quantity, SalesUnitPrice, PaymentType, Email, Contact, Address, Status(미처리/출고완료), ShippedWarehouse, UploadBatch, Remarks
 - `AppSettings` — Title(설정 키, 현재 `emailjs`), Value(**여러 줄 텍스트**, JSON 문자열)
+- `SiteAccounts`, `SiteAccountKeys` — 컬럼과 권한 설정 방법은 [ACCOUNT_VAULT_PLAN.md](ACCOUNT_VAULT_PLAN.md) 14장 참고
 - `Customers` — 기존 컬럼에 더해 `OfficeNumber`(사업자번호), `CEO`(대표명), `MobilePhone`(핸드폰)을 사용. 사업자번호는 **숫자만** 저장·비교함.
 
 ### 6.3 ⚠️ SharePoint 사용 시 주의사항
@@ -233,6 +237,16 @@ UI 페이지
 - NAC는 이 앱과 같은 Microsoft 테넌트로 로그인하므로, 브라우저에 Microsoft 로그인이 되어 있으면 재로그인 없이 들어감.
 - 예전의 "IP 자산 관리" 페이지(SharePoint `IpRanges`/`IpDetails` 기반)는 코드를 삭제함. 필요하면 git 이력에서 복구할 수 있고, SharePoint의 두 리스트 데이터는 그대로 남아 있음.
 
+### 업무 계정 관리 (Account Vault)
+설계 근거와 리스트·권한 설정은 [ACCOUNT_VAULT_PLAN.md](ACCOUNT_VAULT_PLAN.md) 14장, 결정 기록은 [context-notes.md](context-notes.md)에 있습니다.
+- **보호 구조** — 비멤버는 메뉴 권한(카드 숨김 + 페이지 진입 확인)과 SharePoint 리스트 권한(멤버 그룹만 접근) 두 겹으로 막힘. 사람을 추가·제외할 때는 두 곳을 함께 바꿔야 함.
+- **암호화** — 비밀번호와 보안 메모는 AES-256-GCM 암호문(`v1:` + Base64)으로 저장하고, 키는 `SiteAccountKeys` 리스트에 별도 보관 ([vaultCrypto.ts](src/services/vaultCrypto.ts)). 엑셀 내보내기나 버전 기록에 평문이 남지 않게 하는 **가림 처리**이며, 키를 읽을 수 있는 멤버는 풀 수 있음.
+- **한계** — 멤버끼리는 SharePoint에서 서로의 항목을 직접 열 수 있어, 항목별 "볼 수 있는 사용자"는 앱 화면에서만 적용됨. 관리자는 전체 열람.
+- **키 관리** — 키는 관리자가 최초 1회 화면의 "암호화 키 생성" 버튼으로 만듦. 계정이 있는데 키가 없으면 새 키를 만들지 않고 오류를 표시함(새 키로는 기존 비밀번호를 풀 수 없기 때문). **키를 잃으면 모든 비밀번호를 복구할 수 없으니 오프라인 백업 필수.**
+- **화면 동작** — 비밀번호는 보기·복사·수정할 때만 복호화하고 30초 후 자동으로 가림. 다른 탭으로 가면 즉시 가림. 복사 30초 후 클립보드 비우기를 시도함.
+- 수정·삭제는 담당자와 관리자만 가능하고, 삭제하면 SharePoint 휴지통으로 이동함.
+- 이 메뉴의 조회 함수는 실패를 빈 목록으로 숨기지 않고 오류로 표시함(리스트 미생성·권한 없음 안내).
+
 ### 장비 관리 (Equipment)
 - 장비 등록/수정/삭제 + 변경 이력(`EquipmentLogs`) 기록.
 - **관리번호 자동 채번**: `BIT` + `YYMM`(구입일 기준) + 3자리 순번 형식 (예: `BIT2506001`). 동일 접두사 내 최대 순번 +1 (`handleGenerateManagementNumber`).
@@ -269,6 +283,7 @@ BIT_management/
 │  │  ├─ sharepoint.ts            # 범용 리스트 CRUD
 │  │  ├─ email.ts                 # EmailJS 출고 메일 / 테스트 발송
 │  │  ├─ settings.ts              # AppSettings 리스트 기반 메일 설정
+│  │  ├─ vaultCrypto.ts           # 업무 계정 비밀번호 암호화(AES-256-GCM)
 │  │  └─ excelService.ts          # 엑셀 입출력 (주문 파싱/월 다운로드 등)
 │  ├─ utils/
 │  │  └─ date.ts                  # todayKst() — KST 기준 날짜
@@ -290,7 +305,7 @@ BIT_management/
 ## 9. 인수자가 가장 먼저 확인할 것 (체크리스트)
 
 1. **Microsoft 365 / Azure AD 접근권**: 앱 등록(App Registration, clientId `3ca657f9-...`)과 테넌트(`32b8ffa5-...`) 관리 권한 확보. clientId/테넌트는 [authConfig.ts](src/authConfig.ts)에 있음.
-2. **SharePoint 사이트 접근권**: `bitkr.sharepoint.com/sites/bit.kr` 및 위 11개 리스트의 편집 권한.
+2. **SharePoint 사이트 접근권**: `bitkr.sharepoint.com/sites/bit.kr` 및 위 13개 리스트의 편집 권한. 업무 계정 리스트 2개는 상속이 끊겨 있으므로 별도로 확인.
 3. **GitHub 저장소 접근권**: push 권한 + GitHub Pages/Actions 설정 권한.
 4. **부트스트랩 관리자 계정** 인수: `lyb77@bit.kr`, `show@bit.kr` (필요 시 본인 계정으로 교체 후 배포).
 5. **EmailJS 계정**: 출고 메일용. 기본 키가 `settings.ts`에 하드코딩되어 있으니 계정 소유권을 확인하고, Gmail 연결이 끊기면 재연결.
